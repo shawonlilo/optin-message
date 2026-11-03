@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opt-In Message — Dashboard</title>
+<style>
+:root{--ink:#16232e;--mint:#10b981;--mint-d:#059669;--amber:#f59e0b;--bg:#faf8f4;--card:#fff;--line:#e7e0d4;--mut:#6f7a72;--red:#ef4444;--sh:0 1px 3px rgba(22,35,46,.07),0 4px 14px rgba(22,35,46,.05)}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
+header{background:#fff;color:var(--ink);padding:14px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(22,35,46,.03)}
+header .logo{font-size:20px;font-weight:800}header .logo span{color:var(--mint)}
+header .sp{flex:1}header input{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 10px;width:260px}
+.btn{background:var(--mint);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
+.btn:hover{background:var(--mint-d)}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.warn{background:var(--amber)}.btn.sm{padding:5px 10px;font-size:13px}.btn:disabled{opacity:.45;cursor:not-allowed}
+nav{display:flex;gap:8px;padding:14px 20px 0;flex-wrap:wrap}
+nav button{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600}
+nav button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+main{padding:16px 20px 40px;max-width:1100px;margin:0 auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--sh)}
+.card .n{font-size:30px;font-weight:800}.card .l{color:var(--mut);font-size:13px;margin-top:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card h3{margin:0 0 10px;font-size:15px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 4px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+textarea{min-height:74px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.b-confirmed{background:#d1fae5;color:#065f46}.b-pending{background:#fef3c7;color:#92400e}.b-opted_out{background:#fee2e2;color:#991b1b}
+.b-draft{background:#e2e8f0;color:#334155}.b-approved{background:#dbeafe;color:#1e40af}.b-sent{background:#d1fae5;color:#065f46}
+#toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:10px;display:none;max-width:420px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.mut{color:var(--mut);font-size:13px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:120px}
+section{display:none}section.on{display:block}
+</style></head>
+<body>
+<header>
+  <div class="logo">📩 Opt-In <span>Message</span></div>
+  <div class="mut">Consent-first dashboard · Dry-run safe</div>
+  <span class="badge b-confirmed">V1 Essential · Light</span>
+  <div class="sp"></div>
+  <input id="token" type="password" placeholder="Admin token">
+  <button class="btn" onclick="saveToken()">Connect</button>
+</header>
+<nav>
+  <button data-tab="overview" class="on">Overview</button>
+  <button data-tab="contacts">Contacts</button>
+  <button data-tab="campaigns">Campaigns</button>
+  <button data-tab="import">Import from CleanReach</button>
+  <button data-tab="audit">Audit Log</button>
+</nav>
+<main>
+  <section id="tab-overview" class="on">
+    <div class="cards" id="stats"></div>
+    <div class="grid">
+      <div class="card"><h3>✍️ New Template</h3>
+        <label>Template name</label><input id="t-name" placeholder="Launch announcement">
+        <label>Channel</label><select id="t-channel"><option>sms</option><option>whatsapp</option><option>email</option></select>
+        <label>Message — use {name} for personalisation</label><textarea id="t-body" placeholder="Hi {name}, our launch is live! Reply STOP to opt out."></textarea>
+        <p><button class="btn" onclick="createTemplate()">Save template</button></p>
+        <div id="tpl-list" class="mut"></div>
+      </div>
+      <div class="card"><h3>🚀 New Campaign</h3>
+        <label>Campaign name</label><input id="c-name" placeholder="November launch">
+        <label>Template</label><select id="c-template"></select>
+        <label>Channel</label><select id="c-channel"><option>sms</option><option>whatsapp</option><option>email</option></select>
+        <label>Tag filter (optional — only contacts with this tag)</label><input id="c-tag" placeholder="launch">
+        <p><button class="btn" onclick="createCampaign()">Create draft campaign</button></p>
+        <p class="mut">Campaigns are created as <b>drafts</b>. Nothing sends until you approve it in the Campaigns tab — that's the safety gate.</p>
+      </div>
+    </div>
+  </section>
+  <section id="tab-contacts">
+    <div class="card">
+      <div class="row">
+        <div><label>Status</label><select id="f-status"><option value="">All</option><option>confirmed</option><option>pending</option><option>opted_out</option></select></div>
+        <div><label>Channel</label><select id="f-channel"><option value="">All</option><option>sms</option><option>whatsapp</option><option>email</option></select></div>
+        <div><label>Tag</label><input id="f-tag" placeholder="launch"></div>
+        <div style="flex:0"><button class="btn" onclick="loadContacts()">Filter</button></div>
+      </div>
+      <div style="overflow:auto;margin-top:12px"><table><thead><tr><th>Name</th><th>Contact</th><th>Channel</th><th>Tags</th><th>Status</th><th>Confirmed</th></tr></thead><tbody id="contacts"></tbody></table></div>
+    </div>
+  </section>
+  <section id="tab-campaigns">
+    <div class="card"><div style="overflow:auto"><table><thead><tr><th>#</th><th>Name</th><th>Channel</th><th>Tag</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody id="campaigns"></tbody></table></div>
+    <p class="mut">Send only works after Approve — and only reaches <b>confirmed</b> contacts who have not opted out.</p></div>
+  </section>
+  <section id="tab-import">
+    <div class="card"><h3>📥 Import consented contacts (CleanReach)</h3>
+      <p class="mut">Paste a CleanReach <b>consented_phones.csv</b> export or pick the file. Only rows with <b>consent=true</b> are imported — everything else is skipped and counted.</p>
+      <label>CSV file</label><input type="file" id="imp-file" accept=".csv,text/csv">
+      <label>Or paste CSV</label><textarea id="imp-csv" style="min-height:120px" placeholder="name,phone,consent&#10;Karim,+8801912345678,true"></textarea>
+      <label>Channel</label><select id="imp-channel"><option>sms</option><option>whatsapp</option><option>email</option></select>
+      <p><button class="btn" onclick="doImport()">Import consented only</button></p>
+      <div id="imp-result" class="mut"></div>
+    </div>
+  </section>
+  <section id="tab-audit">
+    <div class="card"><div style="overflow:auto"><table><thead><tr><th>When</th><th>Event</th><th>Detail</th></tr></thead><tbody id="audit"></tbody></table></div></div>
+  </section>
+</main>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function tok(){return localStorage.getItem('oim_token')||''}
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',4200)}
+async function api(path,opt){opt=opt||{};opt.headers=Object.assign({'X-Admin-Token':tok(),'Content-Type':'application/json'},opt.headers||{});
+ const r=await fetch(path,opt);let j;try{j=await r.json()}catch(e){j={}}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+function saveToken(){localStorage.setItem('oim_token',$('token').value.trim());toast('Connected — loading your data…');refreshAll()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ document.querySelectorAll('main section').forEach(s=>s.classList.remove('on'));$('tab-'+b.dataset.tab).classList.add('on');
+ if(b.dataset.tab==='contacts')loadContacts();if(b.dataset.tab==='campaigns')loadCampaigns();if(b.dataset.tab==='audit')loadAudit();});
+async function loadStats(){try{const s=await api('/api/stats');
+ const card=(n,l)=>'<div class="card"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
+ $('stats').innerHTML=card(s.confirmed,'✅ Confirmed subscribers')+card(s.pending,'⏳ Pending double opt-in')+card(s.opted_out,'🛑 Opted out')+card(s.campaigns,'🚀 Campaigns')+card(s.deliveries,'✉️ Deliveries');
+}catch(e){$('stats').innerHTML='<div class="card">Enter your admin token above and tap <b>Connect</b>.</div>'}}
+async function loadTemplates(){try{const ts=await api('/api/templates');
+ $('c-template').innerHTML=ts.length?ts.map(t=>'<option value="'+t.id+'">#'+t.id+' '+esc(t.name)+' ('+esc(t.channel)+')</option>').join(''):'<option value="">— create a template first —</option>';
+ $('tpl-list').innerHTML=ts.length?('Saved: '+ts.map(t=>esc(t.name)).join(' · ')):'No templates yet.';
+}catch(e){}}
+async function createTemplate(){try{await api('/api/templates',{method:'POST',body:JSON.stringify({name:$('t-name').value,channel:$('t-channel').value,body:$('t-body').value})});toast('✅ Template saved');$('t-name').value='';$('t-body').value='';loadTemplates();}catch(e){toast('⚠️ '+e.message)}}
+async function createCampaign(){try{const r=await api('/api/campaigns',{method:'POST',body:JSON.stringify({name:$('c-name').value,template_id:parseInt($('c-template').value||'0'),channel:$('c-channel').value,tag_filter:$('c-tag').value})});toast('✅ Draft campaign #'+r.id+' created — approve it in Campaigns');$('c-name').value='';loadStats();}catch(e){toast('⚠️ '+e.message)}}
+async function loadContacts(){try{const p=new URLSearchParams();const st=$('f-status').value,ch=$('f-channel').value,tg=$('f-tag').value;
+ if(st)p.set('status',st);if(ch)p.set('channel',ch);if(tg)p.set('tag',tg);
+ const rows=await api('/api/contacts?'+p.toString());
+ $('contacts').innerHTML=rows.length?rows.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.identifier)+'</td><td>'+esc(c.channel)+'</td><td>'+esc(c.tags)+'</td><td><span class="badge b-'+esc(c.status)+'">'+esc(c.status)+'</span></td><td>'+esc(c.confirmed_at||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="mut">No contacts match.</td></tr>';
+}catch(e){toast('⚠️ '+e.message)}}
+async function loadCampaigns(){try{const rows=await api('/api/campaigns');
+ $('campaigns').innerHTML=rows.length?rows.map(c=>{let act='—';
+  if(c.status==='draft')act='<button class="btn sm warn" onclick="approve('+c.id+')">Approve</button>';
+  if(c.status==='approved')act='<button class="btn sm" onclick="sendC('+c.id+')">Send now</button>';
+  return '<tr><td>'+c.id+'</td><td>'+esc(c.name)+'</td><td>'+esc(c.channel)+'</td><td>'+esc(c.tag_filter||'')+'</td><td><span class="badge b-'+esc(c.status)+'">'+esc(c.status)+'</span></td><td>'+esc(c.created_at||'')+'</td><td>'+act+'</td></tr>'}).join(''):'<tr><td colspan="7" class="mut">No campaigns yet — create one in Overview.</td></tr>';
+}catch(e){toast('⚠️ '+e.message)}}
+async function approve(id){try{await api('/api/campaigns/'+id+'/approve',{method:'POST',body:'{}'});toast('✅ Campaign #'+id+' approved — you can send it now');loadCampaigns();}catch(e){toast('⚠️ '+e.message)}}
+async function sendC(id){if(!confirm('Send campaign #'+id+' to all matching CONFIRMED contacts now?'))return;
+ try{const r=await api('/api/campaigns/'+id+'/send',{method:'POST',body:'{}'});toast('✉️ Sent: '+r.sent+' · Failed: '+r.failed+' · Targeted: '+r.targeted);loadCampaigns();loadStats();}catch(e){toast('⚠️ '+e.message)}}
+$('imp-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$('imp-csv').value=rd.result};rd.readAsText(f)});
+async function doImport(){try{const r=await api('/api/import/consented',{method:'POST',body:JSON.stringify({csv:$('imp-csv').value,channel:$('imp-channel').value})});
+ $('imp-result').textContent='Imported '+r.imported+' consented contacts · Skipped '+r.skipped+' (no consent record)';toast('📥 Import done: '+r.imported+' imported');loadStats();}catch(e){toast('⚠️ '+e.message)}}
+async function loadAudit(){try{const rows=await api('/api/audit');
+ $('audit').innerHTML=rows.length?rows.map(a=>'<tr><td>'+esc(a.created_at)+'</td><td><b>'+esc(a.event)+'</b></td><td>'+esc(a.detail)+'</td></tr>').join(''):'<tr><td colspan="3" class="mut">No events yet.</td></tr>';
+}catch(e){toast('⚠️ '+e.message)}}
+function refreshAll(){loadStats();loadTemplates()}
+$('token').value=tok(); refreshAll();
+</script>
+</body></html>
