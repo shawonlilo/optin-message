@@ -1,0 +1,15 @@
+# Keep the build context (and the image) to what the web app needs.
+.git
+.github
+__pycache__
+*.pyc
+.env
+data/
+tests/
+app/
+seed_demo.py
+engine_main.py
+*.md
+.dockerignore
+Dockerfile
+docker-compose.yml

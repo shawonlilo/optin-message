@@ -62,6 +62,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ai as ai_engine  # AI Studio engine (Meta Model API w/ local fallback)
 
 PORT = int(os.environ.get("PORT", "8080"))
+# Bind address. Local runs stay on 127.0.0.1; the Docker image sets
+# HOST=0.0.0.0 so the published port can actually reach the server.
+HOST = os.environ.get("HOST", "127.0.0.1")
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "change-me-dev-token")
 DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "data", "optin.db"))
 DRY_RUN = os.environ.get("DRY_RUN", "1") not in ("0", "false", "False")
@@ -701,6 +704,6 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     init_db()
     _c = db(); _cfg = ai_engine.get_ai_config(_c); _c.close()
-    print(f"Opt-In Message v{VERSION} on http://127.0.0.1:{PORT}  DRY_RUN={DRY_RUN}  "
+    print(f"Opt-In Message v{VERSION} on http://{HOST}:{PORT}  DRY_RUN={DRY_RUN}  "
           f"AI={'meta-ai' if _cfg['configured'] else 'local'} (source={_cfg['source']})  DB={DB_PATH}")
-    ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
+    ThreadingHTTPServer((HOST, PORT), H).serve_forever()

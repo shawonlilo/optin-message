@@ -116,7 +116,10 @@ jobs:
           projectPath: app
           tagName: ${{ github.ref_name }}
           releaseName: "Opt-In Message ${{ github.ref_name }}"
-          releaseBody: "See the assets below to download and install this version. v0.6.1: everything in v0.6.0 (the engine is BUILT IN — desktop installers carry a standalone engine binary, so no Python installation is needed; Windows also has a one-click auto-setup fallback; real logo; welcome screen with Restart engine / Open data folder / Copy dashboard URL) PLUS the Android APK (optin-message-android.apk, arm64) now builds and ships — it is signed with an ephemeral CI key, so Android will ask you to allow the install (sideload). The Android shell is a launcher/viewer: the Python engine cannot run on Android, so for the full app on mobile use the PWA from a running desktop/server instance. The plain source zip runs anywhere Python 3 runs: python3 app.py"
+          # Keep this body version-neutral: it ships with every tag, so
+          # anything version-specific belongs in the release notes the
+          # maintainer adds after the assets land, not in here.
+          releaseBody: "See the assets below to download and install this version. The engine is BUILT IN — desktop installers carry a standalone engine binary, so no Python installation is needed; Windows also has a one-click auto-setup fallback; the welcome screen offers Restart engine / Open data folder / Copy dashboard URL. The Android APK (optin-message-android.apk, arm64) is signed with an ephemeral CI key, so Android will ask you to allow the install (sideload). The Android shell is a launcher/viewer: the Python engine cannot run on Android, so for the full app on mobile use the PWA from a running desktop/server instance. Prefer not to install anything? Try the live sandbox: https://optin-message.shawonshovon687.workers.dev — or run the source zip anywhere Python 3 runs: python3 app.py"
           releaseDraft: false
           prerelease: true
           args: ${{ matrix.args }}

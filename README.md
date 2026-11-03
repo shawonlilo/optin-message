@@ -13,11 +13,17 @@ Free & open source (MIT). Self-host it anywhere Python runs. Bring your own
 provider keys (Twilio / Meta / SMTP) — there is no per-contact pricing and
 nobody sits between you and your audience.
 
-## 💻 Desktop & Mobile Installers (v0.6.0 packaging, built via CI)
+**▶ Try it live (sandbox — no install, no real messages sent):**
+<https://optin-message.shawonshovon687.workers.dev>
+A safe demo running on Cloudflare: sign up through the opt-in form, look
+at the dashboard, draft a campaign. Sending is simulated there, so you
+can click everything without worrying.
+
+## 💻 Desktop & Mobile Installers (built via CI)
 
 Opt-In Message ships with the same native-app packaging as the rest of
-the suite (CleanReach · Network Diagnostics · Cloud Drive Bridge) — with
-one big v0.6.0 upgrade: **the engine is built in.** Each desktop CI job
+the suite (CleanReach · Network Diagnostics · Cloud Drive Bridge) — and
+since v0.6.0, **the engine is built in.** Each desktop CI job
 freezes the Python engine (`engine_main.py`) with PyInstaller into a
 standalone `optin-engine` binary bundled as a Tauri sidecar, so the
 desktop app just works — **no Python installation needed.** The shell's
@@ -34,14 +40,17 @@ tag is pushed (nothing is compiled on a developer machine):
 
 | Platform | Assets CI produces |
 |---|---|
-| Windows | `Opt-In Message_0.6.0_x64_en-US.msi` + `Opt-In Message_0.6.0_x64-setup.exe` (NSIS) |
-| macOS | `Opt-In Message_0.6.0_aarch64.dmg` + `Opt-In Message_0.6.0_x64.dmg` (+ `.app.tar.gz`) |
-| Linux / Debian | `Opt-In Message_0.6.0_amd64.AppImage` + `Opt-In Message_0.6.0_amd64.deb` |
+| Windows | `Opt-In Message_0.6.1_x64_en-US.msi` + `Opt-In Message_0.6.1_x64-setup.exe` (NSIS) |
+| macOS | `Opt-In Message_0.6.1_aarch64.dmg` + `Opt-In Message_0.6.1_x64.dmg` (+ `.app.tar.gz`) |
+| Linux / Debian | `Opt-In Message_0.6.1_amd64.AppImage` + `Opt-In Message_0.6.1_amd64.deb` |
 | Android | `optin-message-android.apk` (experimental, signed with an ephemeral CI key; the Android shell is a viewer — the engine cannot spawn on Android, use the PWA there) |
 | Anywhere | the source zip on the release — unzip and `python3 app.py` (Python 3 is only needed for this source-zip path, not for the installers) |
 
 The release workflow runs the quality gates first (49 Python engine tests
 + credential grep + gitleaks) — a red gate means no installers.
+
+Want to rebuild any of this yourself? [BUILDING.md](BUILDING.md) walks
+through every platform, the Android quirk, and the Docker image.
 
 ## 🆕 v0.4.0 — Hackathon Cut
 
@@ -85,7 +94,7 @@ change/remove it before any real deployment.
 
 A real dashboard — no JSON, no command line needed. Warm off-white
 surfaces (#FAF8F4), white cards with soft depth, ink text and a mint
-accent — premium light, never plain-white sloppy.
+accent. Light, calm, and easy to read for hours.
 
 - **Overview** — live stat cards, template builder, campaign builder
 - **Contacts** — filterable table (status, channel, tag) with status badges
@@ -122,6 +131,21 @@ python3 app.py              # http://127.0.0.1:8080
 python3 seed_demo.py        # optional: Dhaka Threads demo data + demo login
 python3 tests/test_e2e.py   # full end-to-end test suite (49 checks)
 ```
+
+### 🐳 Or with Docker
+
+No Python on the host? The repo ships a `Dockerfile` and
+`docker-compose.yml`:
+
+```bash
+docker compose up -d        # builds the image and starts the app
+# open http://127.0.0.1:8080/ — dashboard at /admin
+```
+
+The database lives in a named volume, so your contacts survive restarts
+and rebuilds. The container starts with `DRY_RUN=1`: look around, test
+the whole flow, and only wire real provider keys when you are ready.
+Details in [BUILDING.md](BUILDING.md).
 
 ## 🔑 Bring your own AI key (BYOK)
 
