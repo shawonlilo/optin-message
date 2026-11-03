@@ -204,7 +204,12 @@ pub fn run() {
                 // failed every CI platform build in v0.5.1).
                 let child = {
                     let state = app.state::<Engine>();
-                    state.child.lock().unwrap().take()
+                    // Bind to a local first (rustc's E0597 prescription):
+                    // as a block tail expression the MutexGuard temporary
+                    // would outlive `state`; as a let statement it drops
+                    // at the semicolon.
+                    let taken = state.child.lock().unwrap().take();
+                    taken
                 };
                 if let Some(mut child) = child {
                     let _ = child.kill();
