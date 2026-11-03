@@ -1,1 +1,7 @@
-{"$schema":"../gen/schemas/desktop-schema.json","description":"Default window permissions. The shell needs no filesystem, shell or plugin permissions of its own — the Python engine is started by Rust itself (std::process) and the UI only talks to it over localhost.","identifier":"default","permissions":["core:default"],"windows":["main"]}
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "description": "Default window permissions. The Simple App shell needs no filesystem, shell, network or plugin permissions of its own — the UI is static files bundled with the app and all data stays in the webview's local storage.",
+  "identifier": "default",
+  "permissions": ["core:default"],
+  "windows": ["main"]
+}

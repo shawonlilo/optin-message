@@ -1,17 +1,16 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "app": {
-    "withGlobalTauri": true,
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:"
     },
     "windows": [
       {
         "label": "main",
-        "title": "Opt-In Message \u2014 Consent-First Messaging",
+        "title": "Opt-In Message — Consent-First Messaging",
         "width": 1100,
         "height": 800,
-        "minWidth": 760,
+        "minWidth": 360,
         "minHeight": 560
       }
     ]
@@ -30,7 +29,7 @@
       "icons/icon.ico"
     ],
     "shortDescription": "Consent-first messaging for SMS, WhatsApp & Email: double opt-in, proof logged, STOP honoured instantly.",
-    "longDescription": "Opt-In Message is a free, open-source, consent-first messaging app for SMS, WhatsApp and Email. Contacts must complete double opt-in before they can receive anything, campaigns cannot send until a human approves them, and anyone who replies STOP is excluded from every future send \u2014 automatically. The desktop app carries the engine built in as a standalone binary (frozen from the zero-dependency Python engine) and launches it locally on your own machine — no Python installation needed; bring your own provider keys (Twilio / Meta / SMTP). Includes the Meta AI Studio (draft, translate, compliance-check), shared inbox, analytics and a PWA. Free and open source (MIT).",
+    "longDescription": "Opt-In Message is a free, open-source, consent-first messaging app for SMS, WhatsApp and Email. Download, install, open — it just works. No extra software to install, no setup, no account: the whole app runs on your device and your data stays on your device. Contacts must complete double opt-in before they can receive anything, every subscription keeps a saved consent proof, campaigns are risk-checked and cannot send until a human approves them, and anyone who replies STOP is excluded permanently. Sending in this Simple App edition is simulated (a delivery log, no real messages); a self-hosted server edition for real sending lives in the same open-source repo. Free and open source (MIT).",
     "targets": [
       "msi",
       "nsis",
@@ -38,19 +37,9 @@
       "app",
       "deb",
       "appimage"
-    ],
-    "externalBin": [
-      "binaries/optin-engine"
-    ],
-    "resources": {
-      "../../app.py": "python/app.py",
-      "../../ai.py": "python/ai.py",
-      "../../engine_main.py": "python/engine_main.py",
-      "../../seed_demo.py": "python/seed_demo.py",
-      "../../gui": "python/gui"
-    }
+    ]
   },
   "identifier": "org.opentools.optinmessage",
   "productName": "Opt-In Message",
-  "version": "0.6.1"
+  "version": "0.7.0"
 }

@@ -3,168 +3,189 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Opt-In Message</title>
+<title>Opt-In Message — Simple App</title>
 <style>
-  :root{--bg:#FAF8F4;--surface:#FFFFFF;--border:#E7E0D4;--text:#22302A;--muted:#6F7A72;--mint:#0DA678;--mint-dim:#0B7A55;--amber:#C07F13;--red:#B3402A;--radius:14px;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(90,80,40,.08);max-width:600px;width:100%;padding:30px 32px;text-align:center}
-  .logo{width:92px;height:92px;border-radius:22px;box-shadow:0 6px 18px rgba(13,120,85,.18)}
-  h1{margin:10px 0 4px;font-size:25px}
-  .tag{color:var(--muted);font-size:14px;margin:0 0 16px;line-height:1.5}
-  .badge{display:inline-block;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:700;border:1px solid var(--border);background:#F3EFE6;color:var(--muted)}
-  .badge.ok{background:#E4F8EF;border-color:var(--mint);color:var(--mint-dim)}
-  .badge.warn{background:#FDF3DC;border-color:var(--amber);color:var(--amber)}
-  .badge.err{background:#FBE9E4;border-color:var(--red);color:var(--red)}
-  .features{display:flex;gap:10px;margin:20px 0 4px;text-align:left}
-  .feature{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px 13px}
-  .feature .ic{font-size:19px}
-  .feature h3{margin:5px 0 3px;font-size:13.5px}
-  .feature p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
-  .detail{color:var(--muted);font-size:13.5px;line-height:1.55;margin:14px 0 0;min-height:20px}
-  button.hero{background:linear-gradient(160deg,#3ED598,#0DA678 60%,#0B8A5F);color:#052A1E;border:none;font-size:16px;font-weight:800;padding:13px 22px;border-radius:11px;cursor:pointer;width:100%;margin-top:16px}
-  button.hero:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.25)}
-  button.setup{background:#22302A;color:#fff;border:none;font-size:15px;font-weight:700;padding:12px 22px;border-radius:11px;cursor:pointer;width:100%;margin-top:10px}
-  button.setup:disabled{opacity:.5;cursor:wait}
-  .options{display:flex;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
-  .options button{flex:1;background:#fff;border:1px solid var(--border);color:var(--text);font-size:12.5px;font-weight:600;padding:9px 6px;border-radius:9px;cursor:pointer}
-  .options button:hover{border-color:var(--mint);color:var(--mint-dim)}
-  .options button:disabled{opacity:.45;cursor:not-allowed}
-  .footnote{color:var(--muted);font-size:11.5px;margin:14px 0 0;display:none}
-  a{color:var(--mint-dim);font-weight:600}
+  body{margin:0;background:#FAF8F4;color:#0B1220;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+  header{display:flex;align-items:center;gap:12px;margin:8px 0 4px}
+  header .logo{width:48px;height:48px;border-radius:12px;box-shadow:0 4px 12px rgba(13,120,85,.18)}
+  header .name{font-size:21px;font-weight:700}
+  header .tag{color:#5B6472;font-size:13px}
+  .badge{display:inline-block;background:#ECFDF5;border:1px solid #10B981;color:#065F46;font-weight:700;font-size:13px;padding:6px 12px;border-radius:999px;margin:10px 0 16px}
+  nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+  nav button{background:#fff;border:1px solid #EAE6DE;color:#0B1220;font-weight:700;font-size:14px;padding:9px 16px;border-radius:999px;cursor:pointer}
+  nav button.active{background:#0B1220;color:#fff;border-color:#0B1220}
+  .card{background:#fff;border:1px solid #EAE6DE;border-radius:14px;padding:20px;margin:0 0 16px;box-shadow:0 1px 3px rgba(11,18,32,.05)}
+  h1{font-size:27px;margin:6px 0 8px}
+  h2{font-size:18px;margin:0 0 10px}
+  h3{font-size:15px;margin:0 0 6px}
+  p{margin:6px 0}
+  .muted{color:#5B6472;font-size:14px}
+  .small{font-size:13px}
+  label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+  input[type=text],select,textarea{width:100%;padding:10px 12px;border:1px solid #D8D2C6;border-radius:10px;font-size:15px;background:#fff;color:#0B1220}
+  textarea{min-height:110px}
+  .btn{display:inline-block;background:#10B981;color:#fff;border:0;font-weight:700;font-size:15px;padding:11px 20px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:#0EA371}
+  .btn.secondary{background:#0B1220}
+  .btn.stop{background:#DC2626}
+  .btn.small{padding:7px 12px;font-size:13px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .stat{font-size:30px;font-weight:800}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+  .pill.sub{background:#ECFDF5;color:#065F46}
+  .pill.pen{background:#FEF3C7;color:#92400E}
+  .pill.sto{background:#FEE2E2;color:#991B1B}
+  .pill.wait{background:#FEF3C7;color:#92400E}
+  .pill.appr{background:#E0F2FE;color:#075985}
+  .pill.sent{background:#ECFDF5;color:#065F46}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #EFEAE2;vertical-align:top}
+  td.actions{white-space:nowrap}
+  .demo{font-size:11px;background:#EFEAE2;border-radius:6px;padding:1px 6px;font-weight:700}
+  .consent{background:#FAF8F4;border:1px solid #EAE6DE;border-radius:10px;padding:10px 12px;font-size:13px;color:#374151}
+  .risk{font-size:19px;font-weight:800}
+  .flags{color:#92400E;margin:4px 0}
+  .campaign{border-top:1px solid #EFEAE2;padding:12px 0}
+  .campaign:first-child{border-top:0}
+  #flash{display:none;background:#ECFDF5;border:1px solid #10B981;color:#065F46;padding:10px 14px;border-radius:10px;margin:0 0 16px}
+  #risk-preview{display:none;background:#FAF8F4;border:1px solid #EAE6DE;border-radius:10px;padding:12px 14px;margin-top:12px}
+  footer{color:#5B6472;font-size:13px;border-top:1px solid #EAE6DE;padding-top:14px;margin-top:8px}
+  a{color:#0EA371}
+  .rowline{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  .rowline>div{flex:1;min-width:180px}
 </style>
 </head>
 <body>
-<div class="card">
-  <img class="logo" src="logo.png" alt="Opt-In Message logo">
-  <h1>Opt-In Message</h1>
-  <p class="tag">Consent-first messaging for SMS, WhatsApp &amp; Email — double opt-in, proof logged, STOP honoured instantly.</p>
-  <span id="engine" class="badge">engine: starting…</span>
+<div class="wrap">
+  <header>
+    <img class="logo" src="logo.png" alt="Opt-In Message logo">
+    <div>
+      <div class="name">Opt-In Message</div>
+      <div class="tag">Consent-first messaging — Simple App. Your data stays on this device.</div>
+    </div>
+  </header>
+  <div class="badge">SIMPLE APP — no setup, no server, sending is simulated</div>
 
-  <div class="features">
-    <div class="feature"><div class="ic">🛡️</div><h3>Consent proof logged</h3><p>Every opt-in is double-confirmed and recorded — time, source and consent version.</p></div>
-    <div class="feature"><div class="ic">✨</div><h3>Meta AI Studio</h3><p>Draft, translate and compliance-check campaigns with your own Meta AI key.</p></div>
-    <div class="feature"><div class="ic">✋</div><h3>Human approval gate</h3><p>Nothing sends until a person approves it. STOP removes a contact instantly, forever.</p></div>
-  </div>
+  <div id="flash" role="status"></div>
 
-  <div id="detail" class="detail">Starting your private local engine…</div>
-  <button id="open" class="hero" disabled>Open Dashboard</button>
-  <button id="setup" class="setup" style="display:none">⚙️ Set up the engine automatically</button>
+  <nav>
+    <button id="nav-overview" class="active" type="button">Overview</button>
+    <button id="nav-contacts" type="button">Contacts &amp; opt-in</button>
+    <button id="nav-campaigns" type="button">Campaigns</button>
+    <button id="nav-audit" type="button">Audit log</button>
+  </nav>
 
-  <div class="options">
-    <button id="restart" title="Kill the local engine and start it again">↻ Restart engine</button>
-    <button id="datafolder" title="Open the folder holding your database">📂 Open data folder</button>
-    <button id="copyurl" disabled title="Copy the local dashboard address">🔗 Copy dashboard URL</button>
-  </div>
-  <p class="footnote" id="browsernote">Viewing this page in a plain browser? Run <code>python3 app.py</code> from the Opt-In Message folder, then open the dashboard at <code>http://127.0.0.1:8080/</code>.</p>
+  <!-- ============ OVERVIEW ============ -->
+  <section id="tab-overview">
+    <h1>Messaging people actually said yes to.</h1>
+    <p class="muted">Most small businesses get their WhatsApp number banned because they message people who never agreed. Opt-In Message flips that: people subscribe, confirm, and can stop anytime — and every step is proven and saved. This app runs entirely on your device: no account, no server, nothing running in the background.</p>
+    <div class="grid" id="ov-stats"></div>
+    <div class="grid">
+      <div class="card"><h3>1 · People opt in</h3><p class="small muted">A person fills the opt-in form and ticks the consent box. Nothing is sent yet — they start as Pending.</p></div>
+      <div class="card"><h3>2 · They confirm (double opt-in)</h3><p class="small muted">They reply YES to a confirmation. Only then are they Subscribed, with a saved consent proof: time, method and the exact consent text.</p></div>
+      <div class="card"><h3>3 · A human approves every campaign</h3><p class="small muted">Messages are risk-checked first, and sending stays locked until a person approves. That gate is enforced, not a suggestion.</p></div>
+      <div class="card"><h3>4 · STOP always wins</h3><p class="small muted">Anyone can stop at any time. A stopped contact is permanent — they can never be messaged or re-added.</p></div>
+    </div>
+    <div class="card">
+      <h2>Try it</h2>
+      <p class="small muted">Open <strong>Contacts &amp; opt-in</strong>, add a contact, confirm them, then write a campaign in <strong>Campaigns</strong>, approve it and send (simulated). Every step lands in the <strong>Audit log</strong>. The app starts with 3 clearly labelled demo contacts from the fictional Dhaka Threads shop so it is never empty.</p>
+    </div>
+  </section>
+
+  <!-- ============ CONTACTS ============ -->
+  <section id="tab-contacts" style="display:none">
+    <div class="card">
+      <h2>Opt-in form</h2>
+      <p class="small muted">This is the form your customers would fill. Subscribing makes a contact <strong>Pending</strong> — step 1 of double opt-in.</p>
+      <form id="subscribe-form">
+        <label for="f-name">Name</label>
+        <input id="f-name" type="text" required placeholder="e.g. Rahim Uddin">
+        <label for="f-address">Mobile number or email</label>
+        <input id="f-address" type="text" required placeholder="e.g. +8801712345678">
+        <label for="f-channel">How should we reach them?</label>
+        <select id="f-channel">
+          <option>WhatsApp</option><option>SMS</option><option>Email</option>
+        </select>
+        <label>Consent</label>
+        <div class="consent" id="consent-text"></div>
+        <label style="font-weight:400"><input type="checkbox" id="f-consent" required style="width:auto"> Yes, they agree to the consent text above.</label>
+        <p style="margin-top:14px"><button class="btn" type="submit">Subscribe (step 1 of 2)</button></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Already subscribed? Stop messages</h2>
+      <p class="small muted">Enter the same mobile number or email. Stopping is instant and permanent.</p>
+      <form id="stop-form">
+        <label for="stop-address">Mobile number or email</label>
+        <input id="stop-address" type="text" required>
+        <p style="margin-top:12px"><button class="btn stop" type="submit">Stop messages</button></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Contacts &amp; consent proof</h2>
+      <div class="rowline">
+        <div><label for="contact-search">Search</label><input id="contact-search" type="text" placeholder="name, number, email…"></div>
+        <div><label for="contact-filter">Status</label>
+          <select id="contact-filter">
+            <option value="all">All statuses</option>
+            <option value="subscribed">Subscribed</option>
+            <option value="pending">Pending</option>
+            <option value="stopped">Stopped</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <tr><th>Name</th><th>Reach them on</th><th>Status</th><th>Consent proof</th><th></th></tr>
+        <tbody id="contacts-body"></tbody>
+      </table>
+      <p style="margin-top:16px">
+        <button class="btn secondary small" id="reset-demo" type="button">Reset demo data</button>
+        <button class="btn stop small" id="clear-all" type="button">Clear all data</button>
+      </p>
+      <p class="small muted">“Reset demo data” brings back the 3 labelled Dhaka Threads demo contacts and clears campaigns. “Clear all data” empties everything stored on this device.</p>
+    </div>
+  </section>
+
+  <!-- ============ CAMPAIGNS ============ -->
+  <section id="tab-campaigns" style="display:none">
+    <div class="card">
+      <h2>Write a campaign</h2>
+      <p class="small muted">Write a message. A plain rule-based check scores its spam/ban risk as you type. Saving creates a campaign that is <strong>waiting for approval</strong> — it cannot be sent until a human approves it. “Sending” here is simulated: it writes a delivery log entry per Subscribed contact, and Pending and Stopped contacts are always skipped. No real message ever leaves this app.</p>
+      <form id="campaign-form">
+        <label for="c-message">Message</label>
+        <textarea id="c-message" required placeholder="e.g. Eid collection is live at Dhaka Threads. Reply STOP to stop messages."></textarea>
+        <div id="risk-preview"></div>
+        <p style="margin-top:12px"><button class="btn" type="submit">Check risk &amp; save campaign</button></p>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Campaigns</h2>
+      <div id="campaigns-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ AUDIT ============ -->
+  <section id="tab-audit" style="display:none">
+    <div class="card">
+      <h2>Audit log</h2>
+      <p class="small muted">Every important event, newest first. This paper trail is the proof that consent was respected.</p>
+      <table>
+        <tr><th>When</th><th>Event</th><th>Detail</th></tr>
+        <tbody id="audit-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>How this app works:</strong> everything runs on this device, inside this app. No Python, no server, no background process, no account. Your contacts, campaigns and audit log are stored only in this app's local storage. Sending is simulated by design in this edition — for real sending with your own provider keys, see the optional self-hosted server edition in the project README.</p>
+    <p>Opt-In Message · free &amp; open source (MIT) · by Cyberspace Work</p>
+  </footer>
 </div>
-<script>
-  // Factory release gate (learned on CleanReach / Network Diagnostics):
-  // withGlobalTauri:true + __TAURI_INTERNALS__ fallback, and the status
-  // pill below is driven by a REAL invoke() to the Rust `app_info`
-  // command — a green build alone never proves the UI can reach Rust.
-  async function invoke(cmd, args) {
-    if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
-      return window.__TAURI__.core.invoke(cmd, args || {});
-    }
-    if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
-      return window.__TAURI_INTERNALS__.invoke(cmd, args || {});
-    }
-    throw new Error("no tauri bridge");
-  }
-  const badge = document.getElementById('engine');
-  const detail = document.getElementById('detail');
-  const openBtn = document.getElementById('open');
-  const setupBtn = document.getElementById('setup');
-  const copyBtn = document.getElementById('copyurl');
-  let serverUrl = null, navigated = false;
-
-  openBtn.addEventListener('click', async () => {
-    try { await invoke('open_dashboard'); }
-    catch (e) { if (serverUrl) location.href = serverUrl + '/admin'; }
-  });
-  setupBtn.addEventListener('click', async () => {
-    setupBtn.disabled = true;
-    detail.textContent = 'Downloading a private Python runtime from python.org — this can take a minute…';
-    try { await invoke('setup_engine'); }
-    catch (e) { detail.textContent = 'Auto-setup could not start: ' + e; setupBtn.disabled = false; }
-  });
-  document.getElementById('restart').addEventListener('click', async () => {
-    try {
-      detail.textContent = 'Restarting the engine…';
-      openBtn.disabled = true; copyBtn.disabled = true; navigated = false;
-      await invoke('restart_engine');
-    } catch (e) { detail.textContent = 'Restart failed: ' + e; }
-  });
-  document.getElementById('datafolder').addEventListener('click', async () => {
-    try { await invoke('open_data_dir'); }
-    catch (e) { detail.textContent = 'Could not open the data folder: ' + e; }
-  });
-  copyBtn.addEventListener('click', async () => {
-    if (!serverUrl) return;
-    const url = serverUrl + '/admin';
-    try { await navigator.clipboard.writeText(url); copyBtn.textContent = '✓ Copied'; }
-    catch (e) { copyBtn.textContent = url; }
-    setTimeout(() => { copyBtn.textContent = '🔗 Copy dashboard URL'; }, 1800);
-  });
-
-  async function poll() {
-    let info;
-    try {
-      info = JSON.parse(await invoke('app_info'));
-    } catch (e) {
-      badge.textContent = 'welcome — browser preview';
-      badge.className = 'badge warn';
-      detail.textContent = 'This is the app welcome screen. In the desktop app the engine starts automatically.';
-      document.getElementById('browsernote').style.display = 'block';
-      document.getElementById('restart').disabled = true;
-      document.getElementById('datafolder').disabled = true;
-      return;
-    }
-    if (info.server_url) {
-      serverUrl = info.server_url;
-      badge.textContent = 'engine: connected — ' + (info.runtime || 'local') + ' · v' + info.version;
-      badge.className = 'badge ok';
-      detail.textContent = 'Your private engine is live at ' + info.server_url + ' — opening your dashboard…';
-      openBtn.disabled = false;
-      copyBtn.disabled = false;
-      setupBtn.style.display = 'none';
-      if (!navigated) {
-        navigated = true;
-        try { await invoke('open_dashboard'); } catch (e) { /* button stays as manual path */ }
-      }
-      return;
-    }
-    if (info.engine === 'setting_up' || info.setting_up) {
-      badge.textContent = 'engine: setting up…';
-      badge.className = 'badge warn';
-      detail.textContent = 'Downloading and preparing a private Python runtime — almost there…';
-    } else if (info.engine === 'needs_setup') {
-      badge.className = 'badge warn';
-      if (info.setup_error) {
-        badge.textContent = 'engine: setup needs attention';
-        badge.className = 'badge err';
-        detail.textContent = 'Auto-setup hit a problem: ' + info.setup_error;
-      } else {
-        badge.textContent = 'engine: not started';
-        detail.textContent = 'The built-in engine did not start on this machine.';
-      }
-      if (info.can_setup) {
-        detail.textContent += ' One click below fixes it — a private runtime is downloaded into the app data folder, nothing is installed system-wide.';
-        setupBtn.style.display = 'block';
-        setupBtn.disabled = false;
-      } else {
-        detail.textContent += ' Try “Restart engine”, or download the app again. (On this platform a system Python 3 also works — the engine is normally built in, so this is a rare fallback.)';
-      }
-      return;
-    } else {
-      badge.textContent = 'engine: starting…';
-      badge.className = 'badge';
-      detail.textContent = 'Starting your private local engine…';
-    }
-    setTimeout(poll, 800);
-  }
-  poll();
-</script>
+<script src="app.js"></script>
 </body>
 </html>

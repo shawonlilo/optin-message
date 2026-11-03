@@ -6,13 +6,18 @@ or try the live sandbox at
 <https://optin-message.shawonshovon687.workers.dev>. This file is for
 people who want to rebuild it themselves.
 
-There are three ways to run the same app:
+There are three ways to run Opt-In Message:
 
-1. **Desktop and mobile installers** — built by GitHub Actions, never by
-   hand on a developer machine.
-2. **Docker** — one image that runs the web app anywhere Docker runs.
-3. **Plain Python** — the app is standard-library only, so
-   `python3 app.py` is the whole build.
+1. **The Simple App (the product, since v0.7.0)** — native installers
+   built by GitHub Actions, never by hand on a developer machine. The
+   app is a thin Tauri 2 shell around one static frontend
+   (`app/ui/index.html` + `app/ui/app.js`): the whole product runs
+   on-device in the webview with local storage. No engine, no local
+   server, no background process, nothing to install first.
+2. **Docker** — one image that runs the *server edition* web app
+   anywhere Docker runs.
+3. **Plain Python** — the optional server edition is standard-library
+   only, so `python3 app.py` is the whole build.
 
 ---
 
@@ -23,49 +28,36 @@ installers locally; the workflow is the factory.
 
 ```bash
 # bump "version" in app/src-tauri/tauri.conf.json and app/src-tauri/Cargo.toml,
-# bump VERSION in app.py, commit, then:
-git tag vX.Y.Z
-git push origin vX.Y.Z
+# commit, then tag vX.Y.Z and push the tag (this repo ships via the
+# Composio GitHub route — see the maintainer notes).
 ```
 
-That push triggers the pipeline:
+That tag triggers the pipeline:
 
-1. **Quality gates** (Ubuntu) — the 49 Python engine tests, a credential
-   grep over the tree, and a gitleaks scan. If any of these go red, the
-   release stops there. No installers are built from a failing tree.
-2. **Desktop jobs** (Windows, macOS ×2, Ubuntu) — each job first freezes
-   the Python engine into a standalone binary (next section), then
-   `tauri-action` builds the Tauri app and attaches the installers to a
-   release. Releases land as *prerelease* on purpose — a human checks
-   the asset list, then flips the good one to Latest.
+1. **Quality gates** (Ubuntu) — `node --check` on the app JS, a static
+   smoke check (UI files present, no server calls in the app), a
+   credential grep over the tree, and a gitleaks scan. The Python
+   server-edition tests also run, for information only — they never
+   block the app release. A red hard gate stops the release: no
+   installers are built from a failing tree.
+2. **Desktop jobs** (Windows, macOS ×2, Ubuntu) — `tauri-action` builds
+   the app from `app/` and attaches the installers to a release.
+   Releases land as *prerelease* on purpose — a human checks the asset
+   list, then flips the good one to Latest.
 3. **Android job** (Ubuntu, allowed to fail without blocking the rest) —
-   builds the APK, signs it, and attaches it to the same release.
+   builds the APK, signs it, and attaches it to the same release. The
+   Android app is the same full on-device app, not a viewer.
 
-### The built-in engine (why installers need no Python)
+### Why installers need nothing installed
 
-The desktop app is a Tauri 2 shell around the Python web app. End users
-should not have to install Python, so each desktop CI job runs
-PyInstaller over `engine_main.py` and produces a single `optin-engine`
-binary, placed in `app/src-tauri/binaries/` with the target triple in
-its name and bundled via `bundle.externalBin` in `tauri.conf.json`.
-
-At launch the shell tries, in order:
-
-1. the bundled `optin-engine` binary,
-2. system Python 3 running the bundled `.py` sources (they also ship as
-   resources),
-3. on Windows only, a private Python runtime the welcome screen offers
-   to fetch with one click ("auto-setup"),
-4. the welcome screen itself, showing an honest status if nothing
-   could start.
-
-One quirk worth knowing: the macOS x86_64 job runs on an Apple Silicon
-runner, so the engine frozen in that job is actually arm64 code. The
-shell notices the dead binary and falls back to system Python there.
-
-`engine_main.py` is a thin wrapper: it defaults `DATABASE_PATH` to a
-per-user data folder (the install directory is read-only) and then runs
-the same server as `app.py`.
+There is nothing to freeze or bundle: the frontend is static files and
+the shell only opens a window on them. Earlier versions (≤ v0.6.1)
+carried a PyInstaller-frozen Python engine as a sidecar with a
+multi-step fallback launcher; v0.7.0 removed all of that — the shell's
+`src/lib.rs` is a plain Tauri builder, `tauri.conf.json` declares no
+`externalBin` and no bundled resources, and the old
+`tauri.android.conf.json` override (which emptied `externalBin` for
+Android) was deleted with the sidecar it worked around.
 
 ### Windows
 
@@ -77,8 +69,7 @@ Tauri's bundler does both from the same build.
 ### macOS
 
 Produced on `macos-latest` for both Apple Silicon (`aarch64.dmg`) and
-Intel (`x64.dmg`), plus `.app.tar.gz` archives. The Intel engine caveat
-above is the only oddity.
+Intel (`x64.dmg`), plus `.app.tar.gz` archives.
 
 ### Linux
 
@@ -91,7 +82,7 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
   libayatana-appindicator3-dev librsvg2-dev libssl-dev
 ```
 
-### Android — and the override file that makes it work
+### Android
 
 The Android job runs `cargo tauri android init`, builds a release APK
 for arm64, then signs it with a throwaway key generated in CI (a release
@@ -100,25 +91,10 @@ Because the signing key is ephemeral, Android asks the user to allow
 the install — fine for a beta sideload, which is what this is. The APK
 asset is named `optin-message-android.apk`.
 
-The part that cost real debugging time:
-**`app/src-tauri/tauri.android.conf.json` must stay in the repo.** The
-desktop config declares the engine binary under `bundle.externalBin`,
-and Tauri's build checks that a sidecar exists for *every* target —
-including Android, where no engine binary can ever exist (Python cannot
-spawn there). Without the override, `tauri-build` aborts with
-``resource path `binaries/optin-engine-aarch64-linux-android` doesn't exist``.
-The Android config file simply empties `externalBin` for that platform:
-
-```json
-{ "bundle": { "externalBin": [] } }
-```
-
-Tauri merges it over the main config for Android builds only. If a
-future cleanup deletes it as "unused", Android breaks again.
-
-The Android shell is a launcher/viewer: it shows the welcome page, but
-the engine cannot run on a phone. For the real app on mobile, run the
-engine on a desktop or server and use the PWA it serves.
+Historical note: up to v0.6.1 this section documented the
+`tauri.android.conf.json` override that emptied the desktop sidecar's
+`externalBin` for Android. v0.7.0 has no sidecar, so the override file
+is gone and Android builds straight from the main config.
 
 ---
 

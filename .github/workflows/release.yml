@@ -1,12 +1,14 @@
 name: Release
 
-# Born-beta factory (same pattern as CleanReach / Network Diagnostics):
-# push a version tag (v0.6.1) and this builds installers for Windows,
-# macOS and Linux, plus an experimental Android APK. The desktop app is a
-# Tauri 2 shell whose engine is BUILT IN: each desktop job first freezes
-# the Python engine (engine_main.py) with PyInstaller into a standalone
-# `optin-engine` sidecar binary, so end users need nothing installed.
-# The .py sources also ship as resources as a fallback launch path.
+# v0.7.0 "Simple App" factory: push a version tag (v0.7.0) and this
+# builds installers for Windows, macOS and Linux, plus an Android APK.
+# The app is a plain Tauri 2 shell around a static frontend
+# (app/ui: index.html + app.js + logo.png) — the whole product runs
+# on-device in the webview with local storage. There is NO engine,
+# NO sidecar, NO Python in the app build: nothing to freeze, stage
+# or spawn. The Python server edition still lives at the repo root
+# as an optional developer edition; its tests run in the gate job
+# for information only and never block the app release.
 
 on:
   push:
@@ -24,11 +26,19 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: App JS syntax gate (the Simple App is app/ui/app.js)
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
-      - name: Python engine tests (49 checks)
-        run: python3 tests/test_e2e.py
+          node-version: "20"
+      - run: node --check app/ui/app.js
+      - name: Static smoke — UI files exist, no server calls in the app
+        run: |
+          test -f app/ui/index.html && test -f app/ui/app.js && test -f app/ui/logo.png
+          if grep -nE "fetch\(|XMLHttpRequest|WebSocket|localhost|127\.0\.0\.1" app/ui/app.js app/ui/index.html ; then
+            echo "::error::the Simple App must not call any server"
+            exit 1
+          fi
+          echo "static smoke clean"
       - name: Credential grep (hard gate — no keys, tokens or private keys in the tree)
         run: |
           if grep -RInE --exclude-dir=.git --exclude-dir=data --exclude-dir=target \
@@ -41,6 +51,14 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Optional developer (Python server) edition: tests are
+      # informational only — a red run here never blocks the app.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python server-edition tests (non-blocking)
+        continue-on-error: true
+        run: python3 tests/test_e2e.py
 
   desktop:
     needs: quality-gates
@@ -50,16 +68,12 @@ jobs:
         include:
           - os: windows-latest
             args: ""
-            triple: x86_64-pc-windows-msvc
           - os: macos-latest
             args: "--target aarch64-apple-darwin"
-            triple: aarch64-apple-darwin
           - os: macos-latest
             args: "--target x86_64-apple-darwin"
-            triple: x86_64-apple-darwin
           - os: ubuntu-22.04
             args: ""
-            triple: x86_64-unknown-linux-gnu
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -69,44 +83,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev librsvg2-dev libssl-dev
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      # Freeze the engine into the standalone sidecar the shell launches
-      # first. gui/ must ride inside the frozen binary (add-data with an
-      # ABSOLUTE source path — a relative one resolves against the spec
-      # dir and silently breaks). Note: the macOS x86_64 job runs on an
-      # arm64 runner, so its "x86_64" engine is arm64 code; the shell
-      # detects a dead sidecar and falls back to system Python there.
-      - name: Freeze engine sidecar (PyInstaller, macOS/Linux)
-        if: matrix.os != 'windows-latest'
-        shell: bash
-        run: |
-          pip install pyinstaller
-          python -m PyInstaller --noconfirm --clean --onefile \
-            --name optin-engine \
-            --add-data "$GITHUB_WORKSPACE/gui:gui" \
-            --distpath /tmp/enginedist --workpath /tmp/enginework \
-            --specpath /tmp/enginespec \
-            engine_main.py
-          mkdir -p app/src-tauri/binaries
-          cp /tmp/enginedist/optin-engine "app/src-tauri/binaries/optin-engine-${{ matrix.triple }}"
-          chmod +x "app/src-tauri/binaries/optin-engine-${{ matrix.triple }}"
-          ls -la app/src-tauri/binaries/
-      - name: Freeze engine sidecar (PyInstaller, Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          pip install pyinstaller
-          python -m PyInstaller --noconfirm --clean --onefile `
-            --name optin-engine `
-            --add-data "$env:GITHUB_WORKSPACE\gui;gui" `
-            --distpath "$env:TEMP\enginedist" --workpath "$env:TEMP\enginework" `
-            --specpath "$env:TEMP\enginespec" `
-            engine_main.py
-          New-Item -ItemType Directory -Force app/src-tauri/binaries | Out-Null
-          Copy-Item "$env:TEMP\enginedist\optin-engine.exe" "app/src-tauri/binaries/optin-engine-${{ matrix.triple }}.exe"
-          Get-ChildItem app/src-tauri/binaries
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
@@ -119,7 +95,7 @@ jobs:
           # Keep this body version-neutral: it ships with every tag, so
           # anything version-specific belongs in the release notes the
           # maintainer adds after the assets land, not in here.
-          releaseBody: "See the assets below to download and install this version. The engine is BUILT IN — desktop installers carry a standalone engine binary, so no Python installation is needed; Windows also has a one-click auto-setup fallback; the welcome screen offers Restart engine / Open data folder / Copy dashboard URL. The Android APK (optin-message-android.apk, arm64) is signed with an ephemeral CI key, so Android will ask you to allow the install (sideload). The Android shell is a launcher/viewer: the Python engine cannot run on Android, so for the full app on mobile use the PWA from a running desktop/server instance. Prefer not to install anything? Try the live sandbox: https://optin-message.shawonshovon687.workers.dev — or run the source zip anywhere Python 3 runs: python3 app.py"
+          releaseBody: "See the assets below to download and install this version. This is the Simple App: download, install, open — it just works. No Python, no server, no setup, no account; the whole app runs on your device and your data stays on your device. Sending is simulated in this edition (delivery log only, no real messages). The Android APK (optin-message-android.apk, arm64) is signed with an ephemeral CI key, so Android will ask you to allow the install (sideload); the full app runs on Android too — it is the same on-device app, not a viewer. Prefer not to install anything? Try the live sandbox: https://optin-message.shawonshovon687.workers.dev"
           releaseDraft: false
           prerelease: true
           args: ${{ matrix.args }}
@@ -168,14 +144,8 @@ jobs:
           # Release profile (optimized + stripped) for the arm64 ABI that
           # every modern Android phone uses. A release build comes out
           # unsigned; the next step signs it so it can be sideloaded.
-          # NOTE: the Android shell shows the launcher page — the Python
-          # engine cannot spawn on Android, so mobile is a viewer/beta
-          # lane exactly like the factory's other experimental APKs.
-          # The desktop sidecar (bundle.externalBin) is removed for this
-          # target by app/src-tauri/tauri.android.conf.json — without it,
-          # tauri-build aborts with: resource path
-          # `binaries/optin-engine-aarch64-linux-android` doesn't exist
-          # (the v0.5.1–v0.6.0 Android failures).
+          # v0.7.0: the app has no sidecar/externalBin at all, so the old
+          # tauri.android.conf.json override is gone — nothing to exclude.
           # Tee the full log so a failure leaves the real error behind.
           set -o pipefail
           cargo tauri android build --apk --target aarch64 2>&1 | tee /tmp/android-build.log

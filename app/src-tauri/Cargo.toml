@@ -1,9 +1,9 @@
 [package]
 name = "optin-message"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 license = "MIT"
-description = "Opt-In Message — consent-first messaging (Tauri shell over the Python engine)."
+description = "Opt-In Message — consent-first messaging. Simple App: a plain Tauri shell around a static on-device frontend."
 
 [lib]
 # Mobile builds require a library target (staticlib/cdylib for the
