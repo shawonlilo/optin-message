@@ -1,6 +1,6 @@
 [package]
 name = "optin-message"
-version = "0.5.0"
+version = "0.5.2"
 edition = "2021"
 license = "MIT"
 description = "Opt-In Message — consent-first messaging (Tauri shell over the Python engine)."

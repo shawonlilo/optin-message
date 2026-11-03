@@ -198,8 +198,15 @@ pub fn run() {
         .expect("error while building Opt-In Message")
         .run(|app, event| {
             if let RunEvent::Exit = event {
-                let state = app.state::<Engine>();
-                if let Some(mut child) = state.child.lock().unwrap().take() {
+                // Take the child out in its own scope: keeping the
+                // MutexGuard temporary alive across the if-let body
+                // while `state` drops is E0597 (this one borrow error
+                // failed every CI platform build in v0.5.1).
+                let child = {
+                    let state = app.state::<Engine>();
+                    state.child.lock().unwrap().take()
+                };
+                if let Some(mut child) = child {
                     let _ = child.kill();
                     let _ = child.wait();
                 }
