@@ -11,7 +11,7 @@ Free & open source (MIT). Self-host it anywhere Python runs. Bring your own
 provider keys (Twilio / Meta / SMTP) — there is no per-contact pricing and
 nobody sits between you and your audience.
 
-## 💻 Desktop & Mobile Installers (v0.5.3 packaging, built via CI)
+## 💻 Desktop & Mobile Installers (v0.5.4 packaging, built via CI)
 
 Opt-In Message now ships with the same native-app packaging as the rest of
 the suite (CleanReach · Network Diagnostics · Cloud Drive Bridge). The
@@ -23,7 +23,7 @@ real Rust `app_info` invoke — if Python 3 is missing it explains exactly
 that, with a download link, instead of failing silently.
 
 **Python 3 is required** for the desktop engine (standard library only —
-no pip installs). The Python core version stays **0.4.0**; **0.5.3** is the
+no pip installs). The Python core version stays **0.4.0**; **0.5.4** is the
 packaging/shell version.
 
 Installers are produced by `.github/workflows/release.yml` when a version
@@ -31,9 +31,9 @@ tag is pushed (nothing is compiled on a developer machine):
 
 | Platform | Assets CI produces |
 |---|---|
-| Windows | `Opt-In Message_0.5.3_x64_en-US.msi` + `Opt-In Message_0.5.3_x64-setup.exe` (NSIS) |
-| macOS | `Opt-In Message_0.5.3_aarch64.dmg` + `Opt-In Message_0.5.3_x64.dmg` (+ `.app.tar.gz`) |
-| Linux / Debian | `Opt-In Message_0.5.3_amd64.AppImage` + `Opt-In Message_0.5.3_amd64.deb` |
+| Windows | `Opt-In Message_0.5.4_x64_en-US.msi` + `Opt-In Message_0.5.4_x64-setup.exe` (NSIS) |
+| macOS | `Opt-In Message_0.5.4_aarch64.dmg` + `Opt-In Message_0.5.4_x64.dmg` (+ `.app.tar.gz`) |
+| Linux / Debian | `Opt-In Message_0.5.4_amd64.AppImage` + `Opt-In Message_0.5.4_amd64.deb` |
 | Android | `optin-message-android.apk` (experimental, signed with an ephemeral CI key; the Android shell is a viewer — the Python engine cannot spawn on Android) |
 | Anywhere | the source zip on the release — unzip and `python3 app.py` |
 

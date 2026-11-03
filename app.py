@@ -44,7 +44,7 @@ Auth routes (public):
 PWA:
   GET  /manifest.json   GET /sw.js
 """
-VERSION = "0.5.3"
+VERSION = "0.5.4"
 import hashlib
 import json
 import os
@@ -155,7 +155,7 @@ MANIFEST = {
     "icons": [],
 }
 SERVICE_WORKER = """// Opt-In Message service worker — cache-first for the app shell.
-const CACHE = 'oim-v0.5.3';
+const CACHE = 'oim-v0.5.4';
 const SHELL = ['/', '/admin', '/widget.js', '/manifest.json'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
