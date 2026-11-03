@@ -44,7 +44,7 @@ Auth routes (public):
 PWA:
   GET  /manifest.json   GET /sw.js
 """
-VERSION = "0.5.4"
+VERSION = "0.6.0"
 import hashlib
 import json
 import os

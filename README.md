@@ -1,3 +1,5 @@
+<p align="center"><img src="app/branding/logo.png" width="140" alt="Opt-In Message logo"></p>
+
 # 📩 Opt-In Message
 
 **Consent-first messaging for SMS, WhatsApp & Email — double opt-in, proof logged, STOP honoured instantly.**
@@ -11,31 +13,32 @@ Free & open source (MIT). Self-host it anywhere Python runs. Bring your own
 provider keys (Twilio / Meta / SMTP) — there is no per-contact pricing and
 nobody sits between you and your audience.
 
-## 💻 Desktop & Mobile Installers (v0.5.4 packaging, built via CI)
+## 💻 Desktop & Mobile Installers (v0.6.0 packaging, built via CI)
 
-Opt-In Message now ships with the same native-app packaging as the rest of
-the suite (CleanReach · Network Diagnostics · Cloud Drive Bridge). The
-desktop app is a **Tauri 2 shell** (`app/`) that bundles the Python engine
-as resources: on launch it starts `app.py` on a free localhost port, waits
-for `/health`, and opens the real dashboard inside the app window. The
-launcher page shows a live **engine: connected / demo** badge driven by a
-real Rust `app_info` invoke — if Python 3 is missing it explains exactly
-that, with a download link, instead of failing silently.
-
-**Python 3 is required** for the desktop engine (standard library only —
-no pip installs). The Python core version stays **0.4.0**; **0.5.4** is the
-packaging/shell version.
+Opt-In Message ships with the same native-app packaging as the rest of
+the suite (CleanReach · Network Diagnostics · Cloud Drive Bridge) — with
+one big v0.6.0 upgrade: **the engine is built in.** Each desktop CI job
+freezes the Python engine (`engine_main.py`) with PyInstaller into a
+standalone `optin-engine` binary bundled as a Tauri sidecar, so the
+desktop app just works — **no Python installation needed.** The shell's
+launch order is: bundled engine binary → system Python 3 running the
+bundled sources → (Windows) a private runtime fetched by the welcome
+screen's one-click **auto-setup** → the welcome screen with an honest
+status. The welcome screen is a real product page — logo, feature cards,
+a live engine status pill driven by a real Rust `app_info` invoke, and
+native options: **Restart engine**, **Open data folder** and **Copy
+dashboard URL**.
 
 Installers are produced by `.github/workflows/release.yml` when a version
 tag is pushed (nothing is compiled on a developer machine):
 
 | Platform | Assets CI produces |
 |---|---|
-| Windows | `Opt-In Message_0.5.4_x64_en-US.msi` + `Opt-In Message_0.5.4_x64-setup.exe` (NSIS) |
-| macOS | `Opt-In Message_0.5.4_aarch64.dmg` + `Opt-In Message_0.5.4_x64.dmg` (+ `.app.tar.gz`) |
-| Linux / Debian | `Opt-In Message_0.5.4_amd64.AppImage` + `Opt-In Message_0.5.4_amd64.deb` |
-| Android | `optin-message-android.apk` (experimental, signed with an ephemeral CI key; the Android shell is a viewer — the Python engine cannot spawn on Android) |
-| Anywhere | the source zip on the release — unzip and `python3 app.py` |
+| Windows | `Opt-In Message_0.6.0_x64_en-US.msi` + `Opt-In Message_0.6.0_x64-setup.exe` (NSIS) |
+| macOS | `Opt-In Message_0.6.0_aarch64.dmg` + `Opt-In Message_0.6.0_x64.dmg` (+ `.app.tar.gz`) |
+| Linux / Debian | `Opt-In Message_0.6.0_amd64.AppImage` + `Opt-In Message_0.6.0_amd64.deb` |
+| Android | `optin-message-android.apk` (experimental, signed with an ephemeral CI key; the Android shell is a viewer — the engine cannot spawn on Android, use the PWA there) |
+| Anywhere | the source zip on the release — unzip and `python3 app.py` (Python 3 is only needed for this source-zip path, not for the installers) |
 
 The release workflow runs the quality gates first (49 Python engine tests
 + credential grep + gitleaks) — a red gate means no installers.

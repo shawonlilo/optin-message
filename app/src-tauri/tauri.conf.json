@@ -30,7 +30,7 @@
       "icons/icon.ico"
     ],
     "shortDescription": "Consent-first messaging for SMS, WhatsApp & Email: double opt-in, proof logged, STOP honoured instantly.",
-    "longDescription": "Opt-In Message is a free, open-source, consent-first messaging app for SMS, WhatsApp and Email. Contacts must complete double opt-in before they can receive anything, campaigns cannot send until a human approves them, and anyone who replies STOP is excluded from every future send \u2014 automatically. The desktop app wraps the zero-dependency Python engine (bundled as resources) and launches it locally on your own machine; bring your own provider keys (Twilio / Meta / SMTP). Includes the Meta AI Studio (draft, translate, compliance-check), shared inbox, analytics and a PWA. Free and open source (MIT).",
+    "longDescription": "Opt-In Message is a free, open-source, consent-first messaging app for SMS, WhatsApp and Email. Contacts must complete double opt-in before they can receive anything, campaigns cannot send until a human approves them, and anyone who replies STOP is excluded from every future send \u2014 automatically. The desktop app carries the engine built in as a standalone binary (frozen from the zero-dependency Python engine) and launches it locally on your own machine — no Python installation needed; bring your own provider keys (Twilio / Meta / SMTP). Includes the Meta AI Studio (draft, translate, compliance-check), shared inbox, analytics and a PWA. Free and open source (MIT).",
     "targets": [
       "msi",
       "nsis",
@@ -39,14 +39,18 @@
       "deb",
       "appimage"
     ],
+    "externalBin": [
+      "binaries/optin-engine"
+    ],
     "resources": {
       "../../app.py": "python/app.py",
       "../../ai.py": "python/ai.py",
+      "../../engine_main.py": "python/engine_main.py",
       "../../seed_demo.py": "python/seed_demo.py",
       "../../gui": "python/gui"
     }
   },
   "identifier": "org.opentools.optinmessage",
   "productName": "Opt-In Message",
-  "version": "0.5.4"
+  "version": "0.6.0"
 }

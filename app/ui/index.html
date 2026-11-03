@@ -5,48 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Opt-In Message</title>
 <style>
-  :root{--bg:#FAF8F4;--surface:#FFFFFF;--border:#E7E0D4;--text:#22302A;--muted:#6F7A72;--mint:#0DA678;--mint-dim:#0B7A55;--amber:#C07F13;--radius:14px;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  :root{--bg:#FAF8F4;--surface:#FFFFFF;--border:#E7E0D4;--text:#22302A;--muted:#6F7A72;--mint:#0DA678;--mint-dim:#0B7A55;--amber:#C07F13;--red:#B3402A;--radius:14px;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(90,80,40,.08);max-width:560px;width:100%;padding:30px 32px;text-align:center}
-  .logo{font-size:46px}
-  h1{margin:8px 0 4px;font-size:23px}
-  .tag{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(90,80,40,.08);max-width:600px;width:100%;padding:30px 32px;text-align:center}
+  .logo{width:92px;height:92px;border-radius:22px;box-shadow:0 6px 18px rgba(13,120,85,.18)}
+  h1{margin:10px 0 4px;font-size:25px}
+  .tag{color:var(--muted);font-size:14px;margin:0 0 16px;line-height:1.5}
   .badge{display:inline-block;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:700;border:1px solid var(--border);background:#F3EFE6;color:var(--muted)}
   .badge.ok{background:#E4F8EF;border-color:var(--mint);color:var(--mint-dim)}
-  .badge.demo{background:#FDF3DC;border-color:var(--amber);color:var(--amber)}
-  .info{color:var(--muted);font-size:13.5px;line-height:1.55;margin:16px 0 0;text-align:left}
-  .info code{background:#F3EFE6;padding:1px 6px;border-radius:6px;font-size:12.5px}
-  button.hero{background:linear-gradient(160deg,#3ED598,#0DA678 60%,#0B8A5F);color:#052A1E;border:none;font-size:16px;font-weight:800;padding:13px 22px;border-radius:11px;cursor:pointer;width:100%;margin-top:18px}
-  button.hero:disabled{opacity:.5;cursor:wait}
+  .badge.warn{background:#FDF3DC;border-color:var(--amber);color:var(--amber)}
+  .badge.err{background:#FBE9E4;border-color:var(--red);color:var(--red)}
+  .features{display:flex;gap:10px;margin:20px 0 4px;text-align:left}
+  .feature{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px 13px}
+  .feature .ic{font-size:19px}
+  .feature h3{margin:5px 0 3px;font-size:13.5px}
+  .feature p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+  .detail{color:var(--muted);font-size:13.5px;line-height:1.55;margin:14px 0 0;min-height:20px}
+  button.hero{background:linear-gradient(160deg,#3ED598,#0DA678 60%,#0B8A5F);color:#052A1E;border:none;font-size:16px;font-weight:800;padding:13px 22px;border-radius:11px;cursor:pointer;width:100%;margin-top:16px}
+  button.hero:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.25)}
+  button.setup{background:#22302A;color:#fff;border:none;font-size:15px;font-weight:700;padding:12px 22px;border-radius:11px;cursor:pointer;width:100%;margin-top:10px}
+  button.setup:disabled{opacity:.5;cursor:wait}
+  .options{display:flex;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+  .options button{flex:1;background:#fff;border:1px solid var(--border);color:var(--text);font-size:12.5px;font-weight:600;padding:9px 6px;border-radius:9px;cursor:pointer}
+  .options button:hover{border-color:var(--mint);color:var(--mint-dim)}
+  .options button:disabled{opacity:.45;cursor:not-allowed}
+  .footnote{color:var(--muted);font-size:11.5px;margin:14px 0 0;display:none}
   a{color:var(--mint-dim);font-weight:600}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="logo">📩</div>
+  <img class="logo" src="logo.png" alt="Opt-In Message logo">
   <h1>Opt-In Message</h1>
   <p class="tag">Consent-first messaging for SMS, WhatsApp &amp; Email — double opt-in, proof logged, STOP honoured instantly.</p>
-  <span id="engine" class="badge">engine: checking…</span>
-  <div id="detail" class="info">Starting the local messaging engine…</div>
+  <span id="engine" class="badge">engine: starting…</span>
+
+  <div class="features">
+    <div class="feature"><div class="ic">🛡️</div><h3>Consent proof logged</h3><p>Every opt-in is double-confirmed and recorded — time, source and consent version.</p></div>
+    <div class="feature"><div class="ic">✨</div><h3>Meta AI Studio</h3><p>Draft, translate and compliance-check campaigns with your own Meta AI key.</p></div>
+    <div class="feature"><div class="ic">✋</div><h3>Human approval gate</h3><p>Nothing sends until a person approves it. STOP removes a contact instantly, forever.</p></div>
+  </div>
+
+  <div id="detail" class="detail">Starting your private local engine…</div>
   <button id="open" class="hero" disabled>Open Dashboard</button>
-  <p class="info" id="pyhelp" style="display:none">
-    <b>Python 3 is required.</b> The Opt-In Message engine is a small Python app
-    (standard library only) that this shell launches on your own machine.
-    Install Python 3 from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org/downloads</a>,
-    then relaunch this app. On macOS you can also run <code>brew install python</code>;
-    on Windows, tick <i>"Add python.exe to PATH"</i> in the installer.
-  </p>
-  <p class="info" id="browserhelp" style="display:none">
-    You are viewing this launcher in a plain browser (demo mode). To run the full app:
-    <code>python3 app.py</code> from the Opt-In Message folder, then open
-    <code>http://127.0.0.1:8080/</code>.
-  </p>
+  <button id="setup" class="setup" style="display:none">⚙️ Set up the engine automatically</button>
+
+  <div class="options">
+    <button id="restart" title="Kill the local engine and start it again">↻ Restart engine</button>
+    <button id="datafolder" title="Open the folder holding your database">📂 Open data folder</button>
+    <button id="copyurl" disabled title="Copy the local dashboard address">🔗 Copy dashboard URL</button>
+  </div>
+  <p class="footnote" id="browsernote">Viewing this page in a plain browser? Run <code>python3 app.py</code> from the Opt-In Message folder, then open the dashboard at <code>http://127.0.0.1:8080/</code>.</p>
 </div>
 <script>
   // Factory release gate (learned on CleanReach / Network Diagnostics):
-  // withGlobalTauri:true + __TAURI_INTERNALS__ fallback, and the engine
-  // badge below is driven by a REAL invoke() to the Rust `app_info`
+  // withGlobalTauri:true + __TAURI_INTERNALS__ fallback, and the status
+  // pill below is driven by a REAL invoke() to the Rust `app_info`
   // command — a green build alone never proves the UI can reach Rust.
   async function invoke(cmd, args) {
     if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
@@ -60,40 +75,94 @@
   const badge = document.getElementById('engine');
   const detail = document.getElementById('detail');
   const openBtn = document.getElementById('open');
-  let serverUrl = null, tries = 0;
+  const setupBtn = document.getElementById('setup');
+  const copyBtn = document.getElementById('copyurl');
+  let serverUrl = null, navigated = false;
+
   openBtn.addEventListener('click', async () => {
     try { await invoke('open_dashboard'); }
     catch (e) { if (serverUrl) location.href = serverUrl + '/admin'; }
   });
-  async function poll() {
+  setupBtn.addEventListener('click', async () => {
+    setupBtn.disabled = true;
+    detail.textContent = 'Downloading a private Python runtime from python.org — this can take a minute…';
+    try { await invoke('setup_engine'); }
+    catch (e) { detail.textContent = 'Auto-setup could not start: ' + e; setupBtn.disabled = false; }
+  });
+  document.getElementById('restart').addEventListener('click', async () => {
     try {
-      const info = JSON.parse(await invoke('app_info'));
-      if (!info.python_available) {
-        badge.textContent = 'engine: demo — Python 3 not found';
-        badge.className = 'badge demo';
-        detail.textContent = 'The desktop shell is running, but the Python engine is not available on this machine yet.';
-        document.getElementById('pyhelp').style.display = 'block';
-        return;
-      }
-      if (info.server_url) {
-        serverUrl = info.server_url;
-        badge.textContent = 'engine: connected — v' + info.version + ' · Python ' + (info.python_version || '');
-        badge.className = 'badge ok';
-        detail.textContent = 'Local engine is live at ' + info.server_url + ' — opening your dashboard…';
-        openBtn.disabled = false;
-        try { await invoke('open_dashboard'); } catch (e) { /* button stays as manual path */ }
-        return;
-      }
-      detail.textContent = 'Starting the local messaging engine… (Python ' + (info.python_version || 'found') + ')';
+      detail.textContent = 'Restarting the engine…';
+      openBtn.disabled = true; copyBtn.disabled = true; navigated = false;
+      await invoke('restart_engine');
+    } catch (e) { detail.textContent = 'Restart failed: ' + e; }
+  });
+  document.getElementById('datafolder').addEventListener('click', async () => {
+    try { await invoke('open_data_dir'); }
+    catch (e) { detail.textContent = 'Could not open the data folder: ' + e; }
+  });
+  copyBtn.addEventListener('click', async () => {
+    if (!serverUrl) return;
+    const url = serverUrl + '/admin';
+    try { await navigator.clipboard.writeText(url); copyBtn.textContent = '✓ Copied'; }
+    catch (e) { copyBtn.textContent = url; }
+    setTimeout(() => { copyBtn.textContent = '🔗 Copy dashboard URL'; }, 1800);
+  });
+
+  async function poll() {
+    let info;
+    try {
+      info = JSON.parse(await invoke('app_info'));
     } catch (e) {
-      badge.textContent = 'engine: demo (browser)';
-      badge.className = 'badge demo';
-      detail.textContent = 'Tauri bridge not reachable from this page.';
-      document.getElementById('browserhelp').style.display = 'block';
+      badge.textContent = 'welcome — browser preview';
+      badge.className = 'badge warn';
+      detail.textContent = 'This is the app welcome screen. In the desktop app the engine starts automatically.';
+      document.getElementById('browsernote').style.display = 'block';
+      document.getElementById('restart').disabled = true;
+      document.getElementById('datafolder').disabled = true;
       return;
     }
-    if (++tries < 20) setTimeout(poll, 750);
-    else { detail.textContent = 'Engine is taking longer than usual to start. Check that port binding is allowed, then relaunch.'; }
+    if (info.server_url) {
+      serverUrl = info.server_url;
+      badge.textContent = 'engine: connected — ' + (info.runtime || 'local') + ' · v' + info.version;
+      badge.className = 'badge ok';
+      detail.textContent = 'Your private engine is live at ' + info.server_url + ' — opening your dashboard…';
+      openBtn.disabled = false;
+      copyBtn.disabled = false;
+      setupBtn.style.display = 'none';
+      if (!navigated) {
+        navigated = true;
+        try { await invoke('open_dashboard'); } catch (e) { /* button stays as manual path */ }
+      }
+      return;
+    }
+    if (info.engine === 'setting_up' || info.setting_up) {
+      badge.textContent = 'engine: setting up…';
+      badge.className = 'badge warn';
+      detail.textContent = 'Downloading and preparing a private Python runtime — almost there…';
+    } else if (info.engine === 'needs_setup') {
+      badge.className = 'badge warn';
+      if (info.setup_error) {
+        badge.textContent = 'engine: setup needs attention';
+        badge.className = 'badge err';
+        detail.textContent = 'Auto-setup hit a problem: ' + info.setup_error;
+      } else {
+        badge.textContent = 'engine: not started';
+        detail.textContent = 'The built-in engine did not start on this machine.';
+      }
+      if (info.can_setup) {
+        detail.textContent += ' One click below fixes it — a private runtime is downloaded into the app data folder, nothing is installed system-wide.';
+        setupBtn.style.display = 'block';
+        setupBtn.disabled = false;
+      } else {
+        detail.textContent += ' Try “Restart engine”, or download the app again. (On this platform a system Python 3 also works — the engine is normally built in, so this is a rare fallback.)';
+      }
+      return;
+    } else {
+      badge.textContent = 'engine: starting…';
+      badge.className = 'badge';
+      detail.textContent = 'Starting your private local engine…';
+    }
+    setTimeout(poll, 800);
   }
   poll();
 </script>
