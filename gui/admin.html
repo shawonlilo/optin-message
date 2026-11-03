@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Opt-In Message — Dashboard</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#FAF8F4">
 <style>
 :root{--ink:#16232e;--mint:#10b981;--mint-d:#059669;--amber:#f59e0b;--bg:#faf8f4;--card:#fff;--line:#e7e0d4;--mut:#6f7a72;--red:#ef4444;--sh:0 1px 3px rgba(22,35,46,.07),0 4px 14px rgba(22,35,46,.05)}
 *{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
@@ -35,14 +36,24 @@ section{display:none}section.on{display:block}
   <div class="logo">📩 Opt-In <span>Message</span></div>
   <div class="mut">Consent-first dashboard · Dry-run safe</div>
   <span class="badge b-confirmed">V1 Essential · Light</span>
+  <span class="badge b-approved" id="ai-badge">AI: checking…</span>
   <div class="sp"></div>
+  <span id="user-info" class="mut"></span>
+  <a href="/login" id="login-link" class="btn ghost" style="text-decoration:none">Login</a>
+  <button class="btn ghost" id="logout-btn" style="display:none" onclick="doLogout()">Log out</button>
   <input id="token" type="password" placeholder="Admin token">
   <button class="btn" onclick="saveToken()">Connect</button>
 </header>
+<div id="auth-hint" style="display:none;background:#fef3c7;color:#92400e;padding:10px 20px;font-size:14px">
+  👋 You're not signed in. <a href="/login"><b>Log in or create an account</b></a> — or paste your admin token above and tap Connect.
+</div>
 <nav>
   <button data-tab="overview" class="on">Overview</button>
   <button data-tab="contacts">Contacts</button>
   <button data-tab="campaigns">Campaigns</button>
+  <button data-tab="ai">✨ AI Studio</button>
+  <button data-tab="inbox">📥 Inbox</button>
+  <button data-tab="analytics">📊 Analytics</button>
   <button data-tab="import">Import from CleanReach</button>
   <button data-tab="audit">Audit Log</button>
 </nav>
@@ -92,6 +103,59 @@ section{display:none}section.on{display:block}
       <div id="imp-result" class="mut"></div>
     </div>
   </section>
+  <section id="tab-ai">
+    <div class="card" style="margin-bottom:12px"><h3>✨ AI Studio <span class="badge b-approved" id="ai-engine">engine: …</span></h3>
+      <p class="mut">Powered by the Meta Model API (Muse Spark) when a key is configured — add <b>your own key</b> in ⚙️ AI Settings below, or set <b>META_AI_API_KEY</b> in the environment. Otherwise the built-in local engine runs and the badge says so. The source is never faked.</p></div>
+    <div class="card" style="margin-bottom:12px"><h3>⚙️ AI Settings — bring your own key</h3>
+      <p class="mut">Paste your own Meta Model API key to switch AI Studio to real Meta AI. The key is stored <b>only in this instance's own database</b> on your server — it never leaves your server except to call the Meta API, and it is never shown back in full.</p>
+      <label>Meta AI API key</label><input id="set-key" type="password" autocomplete="off" placeholder="Paste your Meta Model API key">
+      <label style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="set-clear" style="width:auto"> Clear the saved key (fall back to environment / local engine)</label>
+      <div class="row">
+        <div><label>Base URL</label><input id="set-base" placeholder="https://api.meta.ai/v1"></div>
+        <div><label>Model</label><input id="set-model" placeholder="muse-spark-1.3"></div>
+      </div>
+      <p><button class="btn" onclick="saveAiSettings()">Save AI settings</button>
+      <button class="btn ghost" onclick="testAiSettings()">Test connection</button></p>
+      <div id="ai-settings-status" class="mut">AI engine status: …</div>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>✍️ Draft a campaign message</h3>
+        <label>Goal</label><input id="ai-goal" placeholder="Our Eid collection is live — up to 20% off">
+        <label>Channel</label><select id="ai-d-channel"><option>whatsapp</option><option>sms</option><option>email</option></select>
+        <label>Tone</label><select id="ai-d-tone"><option>friendly</option><option>formal</option><option>urgent</option></select>
+        <label>Language</label><select id="ai-d-lang"><option value="en">English</option><option value="bn">Bangla (বাংলা)</option></select>
+        <p><button class="btn" onclick="aiDraft()">Generate draft</button></p>
+        <label>Draft</label><textarea id="ai-draft-out" placeholder="Your AI draft will appear here…"></textarea>
+      </div>
+      <div class="card"><h3>🛡️ Compliance &amp; spam-risk check</h3>
+        <label>Message to check</label><textarea id="ai-check-text" placeholder="Paste a message — try something spammy and see the score drop"></textarea>
+        <label>Channel</label><select id="ai-c-channel"><option>whatsapp</option><option>sms</option><option>email</option></select>
+        <p><button class="btn" onclick="aiCheck()">Check this message</button></p>
+        <div id="ai-check-out" class="mut">Score, itemised findings and a safer rewrite will appear here.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>🌐 Translate EN ↔ বাংলা</h3>
+      <label>Text</label><textarea id="ai-tr-text" placeholder="Hello, our Eid sale is live! Shop now."></textarea>
+      <label>Translate to</label><select id="ai-tr-target"><option value="bn">Bangla (বাংলা)</option><option value="en">English</option></select>
+      <p><button class="btn" onclick="aiTranslate()">Translate</button></p>
+      <label>Translation</label><textarea id="ai-tr-out" placeholder="Translation will appear here…"></textarea>
+    </div>
+  </section>
+  <section id="tab-inbox">
+    <div class="card"><div class="row"><div><h3 style="margin:0">📥 Shared Inbox</h3><p class="mut" style="margin:4px 0 0">Replies from your subscribers (STOP/HELP are handled automatically and never land here).</p></div>
+      <div style="flex:0"><button class="btn" onclick="loadInbox()">Refresh</button></div></div>
+      <div style="overflow:auto;margin-top:12px"><table><thead><tr><th>When</th><th>From</th><th>Channel</th><th>Direction</th><th>Message</th><th>Status</th><th>Action</th></tr></thead><tbody id="inbox"></tbody></table></div>
+    </div>
+  </section>
+  <section id="tab-analytics">
+    <div class="cards" id="an-cards"></div>
+    <div class="grid">
+      <div class="card"><h3>Contacts by status</h3><div id="an-status"></div></div>
+      <div class="card"><h3>Contacts by channel</h3><div id="an-channel"></div></div>
+      <div class="card"><h3>Campaigns by status</h3><div id="an-campaigns"></div></div>
+      <div class="card"><h3>Deliveries by status</h3><div id="an-deliveries"></div></div>
+    </div>
+  </section>
   <section id="tab-audit">
     <div class="card"><div style="overflow:auto"><table><thead><tr><th>When</th><th>Event</th><th>Detail</th></tr></thead><tbody id="audit"></tbody></table></div></div>
   </section>
@@ -107,7 +171,8 @@ async function api(path,opt){opt=opt||{};opt.headers=Object.assign({'X-Admin-Tok
 function saveToken(){localStorage.setItem('oim_token',$('token').value.trim());toast('Connected — loading your data…');refreshAll()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
  document.querySelectorAll('main section').forEach(s=>s.classList.remove('on'));$('tab-'+b.dataset.tab).classList.add('on');
- if(b.dataset.tab==='contacts')loadContacts();if(b.dataset.tab==='campaigns')loadCampaigns();if(b.dataset.tab==='audit')loadAudit();});
+ if(b.dataset.tab==='contacts')loadContacts();if(b.dataset.tab==='campaigns')loadCampaigns();if(b.dataset.tab==='audit')loadAudit();
+ if(b.dataset.tab==='inbox')loadInbox();if(b.dataset.tab==='analytics')loadAnalytics();if(b.dataset.tab==='ai')loadAiSettings();});
 async function loadStats(){try{const s=await api('/api/stats');
  const card=(n,l)=>'<div class="card"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
  $('stats').innerHTML=card(s.confirmed,'✅ Confirmed subscribers')+card(s.pending,'⏳ Pending double opt-in')+card(s.opted_out,'🛑 Opted out')+card(s.campaigns,'🚀 Campaigns')+card(s.deliveries,'✉️ Deliveries');
@@ -138,7 +203,54 @@ async function doImport(){try{const r=await api('/api/import/consented',{method:
 async function loadAudit(){try{const rows=await api('/api/audit');
  $('audit').innerHTML=rows.length?rows.map(a=>'<tr><td>'+esc(a.created_at)+'</td><td><b>'+esc(a.event)+'</b></td><td>'+esc(a.detail)+'</td></tr>').join(''):'<tr><td colspan="3" class="mut">No events yet.</td></tr>';
 }catch(e){toast('⚠️ '+e.message)}}
+async function loadAiSettings(){try{const s=await api('/api/settings/ai');
+ $('set-base').value=s.base_url||'';$('set-model').value=s.model||'';
+ $('set-key').placeholder=s.configured?('Saved key ••••'+s.key_hint+' — paste a new key to replace it'):'Paste your Meta Model API key';
+ $('ai-settings-status').textContent=s.configured?('✅ Currently using: Meta AI via '+(s.source==='settings'?'your saved key (AI Settings)':'environment variable')+' · model '+s.model+' · key ••••'+s.key_hint):'ℹ️ Currently using: local engine — no Meta AI key configured. Add your own key above to switch to Meta AI.';
+ $('ai-engine').textContent='engine: '+(s.configured?'meta-ai':'local');
+ $('ai-badge').textContent='AI: '+(s.configured?'Meta AI (Muse Spark)':'local engine');
+}catch(e){$('ai-settings-status').textContent='Sign in or connect with your admin token to manage AI settings.'}}
+async function saveAiSettings(){try{const body={base_url:$('set-base').value.trim(),model:$('set-model').value.trim()};
+ if($('set-clear').checked)body.api_key='';else if($('set-key').value.trim())body.api_key=$('set-key').value.trim();
+ const s=await api('/api/settings/ai',{method:'POST',body:JSON.stringify(body)});
+ $('set-key').value='';$('set-clear').checked=false;
+ toast(s.configured?'✅ AI key saved — AI Studio now uses Meta AI':'✅ AI settings saved — local engine');loadAiSettings();loadHealth();
+}catch(e){toast('⚠️ '+e.message)}}
+async function testAiSettings(){try{$('ai-settings-status').textContent='Testing connection…';
+ const r=await api('/api/settings/ai/test',{method:'POST',body:'{}'});
+ $('ai-settings-status').textContent=r.ok?('✅ Connection works — Meta AI answered in '+r.latency_ms+' ms (model '+r.model+')'):('⚠️ Test failed: '+(r.error||'unknown error'));
+ if(r.ok){$('ai-engine').textContent='engine: meta-ai';$('ai-badge').textContent='AI: Meta AI (Muse Spark)';}
+}catch(e){toast('⚠️ '+e.message)}}
+async function aiDraft(){try{const r=await api('/api/ai/draft',{method:'POST',body:JSON.stringify({goal:$('ai-goal').value,channel:$('ai-d-channel').value,tone:$('ai-d-tone').value,language:$('ai-d-lang').value})});
+ $('ai-draft-out').value=r.draft;$('ai-engine').textContent='engine: '+r.engine;toast('✨ Draft ready (engine: '+r.engine+')');}catch(e){toast('⚠️ '+e.message)}}
+async function aiTranslate(){try{const r=await api('/api/ai/translate',{method:'POST',body:JSON.stringify({text:$('ai-tr-text').value,target:$('ai-tr-target').value})});
+ $('ai-tr-out').value=r.translation;$('ai-engine').textContent='engine: '+r.engine;toast('🌐 Translated (engine: '+r.engine+')');}catch(e){toast('⚠️ '+e.message)}}
+async function aiCheck(){try{const r=await api('/api/ai/check',{method:'POST',body:JSON.stringify({text:$('ai-check-text').value,channel:$('ai-c-channel').value})});
+ $('ai-engine').textContent='engine: '+r.engine;
+ const col=r.score>=80?'#059669':r.score>=55?'#d97706':'#dc2626';
+ let h='<div style="font-size:26px;font-weight:800;color:'+col+'">'+r.score+'/100 — '+esc(r.risk)+' risk</div>';
+ h+=r.findings.length?('<ul>'+r.findings.map(f=>'<li><b>'+esc(f.type)+'</b> ('+f.points+'): '+esc(f.detail)+'</li>').join('')+'</ul>'):'<p>✅ No findings — this message looks clean.</p>';
+ h+='<label>Safer rewrite</label><textarea readonly>'+esc(r.safer_rewrite)+'</textarea>';
+ $('ai-check-out').innerHTML=h;}catch(e){toast('⚠️ '+e.message)}}
+async function loadInbox(){try{const rows=await api('/api/inbox');
+ $('inbox').innerHTML=rows.length?rows.map(m=>'<tr><td>'+esc(m.created_at)+'</td><td>'+esc(m.identifier)+'</td><td>'+esc(m.channel)+'</td><td>'+esc(m.direction)+'</td><td>'+esc(m.body)+'</td><td>'+esc(m.status)+'</td><td>'+(m.direction==='inbound'?'<button class="btn sm" onclick="replyInbox('+m.id+')">Reply</button>':'—')+'</td></tr>').join(''):'<tr><td colspan="7" class="mut">No messages yet — inbound replies to /webhook/inbound land here.</td></tr>';
+}catch(e){toast('⚠️ '+e.message)}}
+async function replyInbox(id){const body=prompt('Reply (recorded as a dry-run delivery — nothing real is sent):');if(!body)return;
+ try{const r=await api('/api/inbox/'+id+'/reply',{method:'POST',body:JSON.stringify({body})});toast('✉️ Reply recorded: '+r.status);loadInbox();}catch(e){toast('⚠️ '+e.message)}}
+function bars(el,data){const entries=Object.entries(data||{});const max=Math.max(1,...entries.map(e=>e[1]));
+ $(el).innerHTML=entries.length?entries.map(([k,v])=>'<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>'+esc(k)+'</span><b>'+v+'</b></div><div style="background:#f0ead9;border-radius:999px;height:12px"><div style="background:var(--mint);height:12px;border-radius:999px;width:'+Math.round(100*v/max)+'%"></div></div></div>').join(''):'<p class="mut">No data yet.</p>';}
+async function loadAnalytics(){try{const a=await api('/api/analytics');
+ const card=(n,l)=>'<div class="card"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
+ $('an-cards').innerHTML=card(a.total_contacts,'👥 Total contacts')+card(a.contacts.confirmed,'✅ Confirmed')+card(a.opt_ins,'📈 Opt-ins logged')+card(a.opt_outs,'🛑 Opt-outs')+card(a.total_campaigns,'🚀 Campaigns')+card(a.delivery_rate+'%','✉️ Delivery rate ('+a.total_deliveries+' deliveries)');
+ bars('an-status',a.contacts.by_status);bars('an-channel',a.contacts.by_channel);bars('an-campaigns',a.campaigns.by_status);bars('an-deliveries',a.deliveries.by_status);
+}catch(e){toast('⚠️ '+e.message)}}
+async function checkSession(){try{const r=await fetch('/api/auth/me');if(!r.ok)throw 0;const j=await r.json();
+ $('user-info').textContent='👤 '+j.user.email;$('login-link').style.display='none';$('logout-btn').style.display='';$('auth-hint').style.display='none';refreshAll();
+}catch(e){if(!tok())$('auth-hint').style.display='block';}}
+async function doLogout(){try{await fetch('/api/auth/logout',{method:'POST'})}catch(e){} localStorage.removeItem('oim_token');location.href='/login';}
+async function loadHealth(){try{const r=await fetch('/health');const j=await r.json();$('ai-badge').textContent='AI: '+(j.ai_engine==='meta-ai'?('Meta AI (Muse Spark)'+(j.ai_source==='settings'?' · your key':'')):'local engine');}catch(e){}}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
 function refreshAll(){loadStats();loadTemplates()}
-$('token').value=tok(); refreshAll();
+$('token').value=tok(); refreshAll(); checkSession(); loadHealth();
 </script>
 </body></html>

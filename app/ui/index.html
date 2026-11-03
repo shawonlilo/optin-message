@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opt-In Message</title>
+<style>
+  :root{--bg:#FAF8F4;--surface:#FFFFFF;--border:#E7E0D4;--text:#22302A;--muted:#6F7A72;--mint:#0DA678;--mint-dim:#0B7A55;--amber:#C07F13;--radius:14px;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(90,80,40,.08);max-width:560px;width:100%;padding:30px 32px;text-align:center}
+  .logo{font-size:46px}
+  h1{margin:8px 0 4px;font-size:23px}
+  .tag{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .badge{display:inline-block;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:700;border:1px solid var(--border);background:#F3EFE6;color:var(--muted)}
+  .badge.ok{background:#E4F8EF;border-color:var(--mint);color:var(--mint-dim)}
+  .badge.demo{background:#FDF3DC;border-color:var(--amber);color:var(--amber)}
+  .info{color:var(--muted);font-size:13.5px;line-height:1.55;margin:16px 0 0;text-align:left}
+  .info code{background:#F3EFE6;padding:1px 6px;border-radius:6px;font-size:12.5px}
+  button.hero{background:linear-gradient(160deg,#3ED598,#0DA678 60%,#0B8A5F);color:#052A1E;border:none;font-size:16px;font-weight:800;padding:13px 22px;border-radius:11px;cursor:pointer;width:100%;margin-top:18px}
+  button.hero:disabled{opacity:.5;cursor:wait}
+  a{color:var(--mint-dim);font-weight:600}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">📩</div>
+  <h1>Opt-In Message</h1>
+  <p class="tag">Consent-first messaging for SMS, WhatsApp &amp; Email — double opt-in, proof logged, STOP honoured instantly.</p>
+  <span id="engine" class="badge">engine: checking…</span>
+  <div id="detail" class="info">Starting the local messaging engine…</div>
+  <button id="open" class="hero" disabled>Open Dashboard</button>
+  <p class="info" id="pyhelp" style="display:none">
+    <b>Python 3 is required.</b> The Opt-In Message engine is a small Python app
+    (standard library only) that this shell launches on your own machine.
+    Install Python 3 from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org/downloads</a>,
+    then relaunch this app. On macOS you can also run <code>brew install python</code>;
+    on Windows, tick <i>"Add python.exe to PATH"</i> in the installer.
+  </p>
+  <p class="info" id="browserhelp" style="display:none">
+    You are viewing this launcher in a plain browser (demo mode). To run the full app:
+    <code>python3 app.py</code> from the Opt-In Message folder, then open
+    <code>http://127.0.0.1:8080/</code>.
+  </p>
+</div>
+<script>
+  // Factory release gate (learned on CleanReach / Network Diagnostics):
+  // withGlobalTauri:true + __TAURI_INTERNALS__ fallback, and the engine
+  // badge below is driven by a REAL invoke() to the Rust `app_info`
+  // command — a green build alone never proves the UI can reach Rust.
+  async function invoke(cmd, args) {
+    if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
+      return window.__TAURI__.core.invoke(cmd, args || {});
+    }
+    if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+      return window.__TAURI_INTERNALS__.invoke(cmd, args || {});
+    }
+    throw new Error("no tauri bridge");
+  }
+  const badge = document.getElementById('engine');
+  const detail = document.getElementById('detail');
+  const openBtn = document.getElementById('open');
+  let serverUrl = null, tries = 0;
+  openBtn.addEventListener('click', async () => {
+    try { await invoke('open_dashboard'); }
+    catch (e) { if (serverUrl) location.href = serverUrl + '/admin'; }
+  });
+  async function poll() {
+    try {
+      const info = JSON.parse(await invoke('app_info'));
+      if (!info.python_available) {
+        badge.textContent = 'engine: demo — Python 3 not found';
+        badge.className = 'badge demo';
+        detail.textContent = 'The desktop shell is running, but the Python engine is not available on this machine yet.';
+        document.getElementById('pyhelp').style.display = 'block';
+        return;
+      }
+      if (info.server_url) {
+        serverUrl = info.server_url;
+        badge.textContent = 'engine: connected — v' + info.version + ' · Python ' + (info.python_version || '');
+        badge.className = 'badge ok';
+        detail.textContent = 'Local engine is live at ' + info.server_url + ' — opening your dashboard…';
+        openBtn.disabled = false;
+        try { await invoke('open_dashboard'); } catch (e) { /* button stays as manual path */ }
+        return;
+      }
+      detail.textContent = 'Starting the local messaging engine… (Python ' + (info.python_version || 'found') + ')';
+    } catch (e) {
+      badge.textContent = 'engine: demo (browser)';
+      badge.className = 'badge demo';
+      detail.textContent = 'Tauri bridge not reachable from this page.';
+      document.getElementById('browserhelp').style.display = 'block';
+      return;
+    }
+    if (++tries < 20) setTimeout(poll, 750);
+    else { detail.textContent = 'Engine is taking longer than usual to start. Check that port binding is allowed, then relaunch.'; }
+  }
+  poll();
+</script>
+</body>
+</html>

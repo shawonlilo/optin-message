@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Opt-In Message — Consent-first SMS, WhatsApp & Email</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#FAF8F4">
 <style>
 :root{--ink:#16232e;--mint:#10b981;--mint-d:#059669;--bg:#faf8f4;--line:#e7e0d4;--mut:#6f7a72;--sh:0 1px 3px rgba(22,35,46,.07),0 4px 14px rgba(22,35,46,.05)}
 *{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
@@ -30,5 +31,7 @@ a.btn:hover{background:var(--mint-d)}footer{color:var(--mut);font-size:13px;text
   </div>
   <footer>Free &amp; open source (MIT) · Bring your own Twilio / Meta / SMTP keys · Part of the Open Tools suite</footer>
 </div>
+<p style="text-align:center"><a href="/login">Log in</a> · <a href="/admin">Dashboard</a> · ✨ AI Studio inside the dashboard — draft, translate EN↔বাংলা and compliance-check every message before it sends.</p>
 <script src="/widget.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}</script>
 </body></html>

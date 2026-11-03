@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opt-In Message — Login</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#FAF8F4">
+<style>
+:root{--ink:#16232e;--mint:#10b981;--mint-d:#059669;--bg:#faf8f4;--card:#fff;--line:#e7e0d4;--mut:#6f7a72;--red:#ef4444;--sh:0 1px 3px rgba(22,35,46,.07),0 4px 14px rgba(22,35,46,.05)}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
+.wrap{max-width:420px;margin:56px auto;padding:0 16px}
+.logo{font-size:24px;font-weight:800;text-align:center;margin-bottom:6px}.logo span{color:var(--mint)}
+.sub{color:var(--mut);text-align:center;font-size:14px;margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--sh)}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+.btn{background:var(--mint);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-weight:700;cursor:pointer;width:100%;margin-top:16px}
+.btn:hover{background:var(--mint-d)}
+.toggle{text-align:center;font-size:14px;color:var(--mut);margin-top:14px}
+.toggle a{color:var(--mint-d);font-weight:700;cursor:pointer;text-decoration:none}
+#err{display:none;background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 12px;font-size:14px;margin-top:12px}
+.hint{color:var(--mut);font-size:13px;text-align:center;margin-top:16px;line-height:1.5}
+</style></head>
+<body><div class="wrap">
+  <div class="logo">📩 Opt-In <span>Message</span></div>
+  <p class="sub">Consent-first messaging — sign in to your dashboard</p>
+  <div class="card">
+    <h3 id="title" style="margin:0 0 4px">Welcome back</h3>
+    <label>Email</label><input id="email" type="email" placeholder="you@shop.com" autocomplete="email">
+    <label>Password</label><input id="password" type="password" placeholder="8+ characters" autocomplete="current-password">
+    <div id="err"></div>
+    <button class="btn" id="go" onclick="submitAuth()">Log in</button>
+    <div class="toggle"><span id="toggle-text">New here?</span> <a onclick="flip()" id="toggle-link">Create an account</a></div>
+  </div>
+  <p class="hint">Demo for judges: <b>demo@dhakathreads.shop</b> / <b>DemoPass2026</b> (after running seed_demo.py).<br>
+  Prefer tokens? The dashboard also accepts your <b>ADMIN_TOKEN</b>.</p>
+</div>
+<script>
+let mode='login';
+function flip(){mode=mode==='login'?'register':'login';
+ document.getElementById('title').textContent=mode==='login'?'Welcome back':'Create your account';
+ document.getElementById('go').textContent=mode==='login'?'Log in':'Create account';
+ document.getElementById('toggle-text').textContent=mode==='login'?'New here?':'Already have an account?';
+ document.getElementById('toggle-link').textContent=mode==='login'?'Create an account':'Log in';
+ document.getElementById('err').style.display='none';}
+async function submitAuth(){
+ const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+ const err=document.getElementById('err');err.style.display='none';
+ try{
+  const r=await fetch('/api/auth/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+  const j=await r.json();if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  location.href='/admin';
+ }catch(e){err.textContent='⚠️ '+e.message;err.style.display='block';}
+}
+document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth()});
+</script>
+</body></html>

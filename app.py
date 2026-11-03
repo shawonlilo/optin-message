@@ -15,7 +15,8 @@ Public routes (by explicit decision, see README):
   POST /webhook/inbound STOP / HELP handling from providers
   GET  /health          health check
 
-Admin routes (require X-Admin-Token header, else 401):
+Admin routes (require X-Admin-Token header OR a logged-in session cookie,
+else 401):
   GET  /admin           dashboard
   GET  /api/stats       counts
   GET  /api/contacts    list / filter contacts
@@ -24,7 +25,26 @@ Admin routes (require X-Admin-Token header, else 401):
   POST /api/campaigns/<id>/approve   human approval gate
   POST /api/campaigns/<id>/send      blocked (409) unless approved
   GET  /api/audit       audit log
+  GET  /api/inbox       inbound messages     POST /api/inbox/<id>/reply
+  GET  /api/analytics   totals + rates
+  POST /api/ai/draft    AI Studio: campaign draft   (engine: meta-ai | local)
+  POST /api/ai/translate AI Studio: EN<->BN translate
+  POST /api/ai/check    AI Studio: compliance / spam-risk score
+  GET  /api/settings/ai BYOK: AI config status (key shown as last-4 hint only)
+  POST /api/settings/ai BYOK: save/clear own Meta AI key, base URL, model
+  POST /api/settings/ai/test  BYOK: one live test call with the saved key
+
+Auth routes (public):
+  POST /api/auth/register   create account (email + password, pbkdf2 hash)
+  POST /api/auth/login      set HttpOnly session cookie
+  POST /api/auth/logout     clear session
+  GET  /api/auth/me         current user from session cookie
+  GET  /login               login page
+
+PWA:
+  GET  /manifest.json   GET /sw.js
 """
+VERSION = "0.5.1"
 import hashlib
 import json
 import os
@@ -38,6 +58,8 @@ import urllib.request
 import base64
 from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import ai as ai_engine  # AI Studio engine (Meta Model API w/ local fallback)
 
 PORT = int(os.environ.get("PORT", "8080"))
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "change-me-dev-token")
@@ -81,6 +103,18 @@ def init_db():
           provider TEXT, status TEXT, detail TEXT, created_at TEXT);
         CREATE TABLE IF NOT EXISTS audit(
           id INTEGER PRIMARY KEY, event TEXT, detail TEXT, created_at TEXT);
+        CREATE TABLE IF NOT EXISTS users(
+          id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE,
+          pw_hash TEXT NOT NULL, pw_salt TEXT NOT NULL, created_at TEXT);
+        CREATE TABLE IF NOT EXISTS sessions(
+          token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS messages(
+          id INTEGER PRIMARY KEY, contact_id INTEGER, identifier TEXT DEFAULT '',
+          channel TEXT DEFAULT 'sms', direction TEXT NOT NULL DEFAULT 'inbound',
+          body TEXT DEFAULT '', status TEXT DEFAULT 'received',
+          reply_to INTEGER, created_at TEXT);
+        CREATE TABLE IF NOT EXISTS settings(
+          key TEXT PRIMARY KEY, value TEXT);
         """
     )
     conn.commit()
@@ -93,6 +127,52 @@ def now():
 
 def audit(conn, event, detail=""):
     conn.execute("INSERT INTO audit(event,detail,created_at) VALUES(?,?,?)", (event, detail, now()))
+
+
+# --------------------------------------------------------------------- auth
+_PBKDF2_ROUNDS = 200_000
+SESSION_TTL = 7 * 24 * 3600  # 7 days
+
+
+def hash_password(password, salt=None):
+    """Return (hash_hex, salt_hex) using pbkdf2_hmac-sha256 with a random salt."""
+    salt = salt or secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", str(password).encode(),
+                             bytes.fromhex(salt), _PBKDF2_ROUNDS)
+    return dk.hex(), salt
+
+
+def verify_password(password, pw_hash, pw_salt):
+    candidate, _ = hash_password(password, pw_salt)
+    return secrets.compare_digest(candidate, pw_hash)
+
+
+MANIFEST = {
+    "name": "Opt-In Message", "short_name": "Opt-In Message",
+    "description": "Consent-first messaging for SMS, WhatsApp & Email — double opt-in, proof logged, STOP honoured instantly.",
+    "start_url": "/", "scope": "/", "display": "standalone",
+    "background_color": "#FAF8F4", "theme_color": "#FAF8F4",
+    "icons": [],
+}
+SERVICE_WORKER = """// Opt-In Message service worker — cache-first for the app shell.
+const CACHE = 'oim-v0.5.1';
+const SHELL = ['/', '/admin', '/widget.js', '/manifest.json'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
+  e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+    const copy = res.clone();
+    caches.open(CACHE).then(c => c.put(e.request, copy));
+    return res;
+  })));
+});
+"""
 
 
 # ---------------------------------------------------------------- providers
@@ -175,6 +255,7 @@ def _load_gui(name, fallback):
 LANDING = _load_gui("landing.html", "<h1>Opt-In Message</h1><div id='optin-widget'></div><script src='/widget.js'></script>")
 WIDGET = _load_gui("widget.js", "")
 ADMIN = _load_gui("admin.html", "<h1>Admin</h1>")
+LOGIN = _load_gui("login.html", "<h1>Login</h1><form method='post' action='/api/auth/login'></form>")
 
 
 # ---------------------------------------------------------------- handler
@@ -182,7 +263,7 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
-    def _send(self, code, body, ctype="application/json"):
+    def _send(self, code, body, ctype="application/json", headers=None):
         if isinstance(body, (dict, list)):
             body = json.dumps(body).encode()
         elif isinstance(body, str):
@@ -190,6 +271,8 @@ class H(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
 
@@ -203,25 +286,68 @@ class H(BaseHTTPRequestHandler):
                 return {}
         return dict(urllib.parse.parse_qsl(raw.decode(errors="ignore")))
 
+    def _session_token(self):
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            part = part.strip()
+            if part.startswith("oim_session="):
+                return part.split("=", 1)[1].strip()
+        return ""
+
+    def _current_user(self):
+        token = self._session_token()
+        if not token:
+            return None
+        conn = db()
+        row = conn.execute(
+            "SELECT u.id, u.email, u.created_at FROM sessions s JOIN users u ON u.id=s.user_id"
+            " WHERE s.token=? AND s.expires>?", (token, time.time())).fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    def _new_session(self, conn, user_id):
+        token = secrets.token_urlsafe(32)
+        conn.execute("INSERT INTO sessions(token,user_id,expires) VALUES(?,?,?)",
+                     (token, user_id, time.time() + SESSION_TTL))
+        return token
+
+    def _session_cookie(self, token):
+        return {"Set-Cookie": f"oim_session={token}; HttpOnly; Path=/; SameSite=Lax; Max-Age={SESSION_TTL}"}
+
     def _admin(self):
         tok = self.headers.get("X-Admin-Token") or ""
-        if tok != ADMIN_TOKEN:
-            self._send(401, {"error": "unauthorized — X-Admin-Token required"})
-            return False
-        return True
+        if tok == ADMIN_TOKEN or self._current_user():
+            return True
+        self._send(401, {"error": "unauthorized — X-Admin-Token or login session required"})
+        return False
 
     # ------------------------------------------------------------ GET
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(u.query)
         if u.path == "/health":
-            return self._send(200, {"ok": True, "dry_run": DRY_RUN})
+            _c = db()
+            _cfg = ai_engine.get_ai_config(_c)
+            _c.close()
+            return self._send(200, {"ok": True, "version": VERSION, "dry_run": DRY_RUN,
+                                    "ai_engine": "meta-ai" if _cfg["configured"] else "local",
+                                    "ai_source": _cfg["source"]})
         if u.path == "/":
             return self._send(200, LANDING, "text/html")
         if u.path == "/widget.js":
             return self._send(200, WIDGET, "application/javascript")
         if u.path == "/admin":
             return self._send(200, ADMIN, "text/html")
+        if u.path == "/login":
+            return self._send(200, LOGIN, "text/html")
+        if u.path == "/manifest.json":
+            return self._send(200, MANIFEST)
+        if u.path == "/sw.js":
+            return self._send(200, SERVICE_WORKER, "application/javascript")
+        if u.path == "/api/auth/me":
+            user = self._current_user()
+            if not user:
+                return self._send(401, {"error": "not logged in"})
+            return self._send(200, {"user": user})
         if u.path == "/confirm":
             token = (q.get("token") or [""])[0]
             conn = db()
@@ -261,9 +387,51 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/campaigns":
                 rows = [dict(r) for r in conn.execute("SELECT * FROM campaigns")]
                 conn.close(); return self._send(200, rows)
+            if u.path == "/api/settings/ai":
+                status = ai_engine.config_status(conn)
+                conn.close(); return self._send(200, status)
             if u.path == "/api/audit":
                 rows = [dict(r) for r in conn.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 200")]
                 conn.close(); return self._send(200, rows)
+            if u.path == "/api/inbox":
+                rows = [dict(r) for r in conn.execute(
+                    "SELECT * FROM messages ORDER BY id DESC LIMIT 200")]
+                conn.close(); return self._send(200, rows)
+            if u.path == "/api/analytics":
+                def counts(table, col):
+                    return {r[col]: r["c"] for r in conn.execute(
+                        f"SELECT {col}, COUNT(*) c FROM {table} GROUP BY {col}")}
+                by_status = counts("contacts", "status")
+                by_channel = counts("contacts", "channel")
+                camp_status = counts("campaigns", "status")
+                del_status = counts("deliveries", "status")
+                opt_ins = conn.execute(
+                    "SELECT COUNT(*) c FROM audit WHERE event IN ('optin_confirmed','cleanreach_import')"
+                ).fetchone()["c"]
+                opt_outs = conn.execute(
+                    "SELECT COUNT(*) c FROM audit WHERE event='opted_out'").fetchone()["c"]
+                total_del = sum(del_status.values())
+                sent_del = del_status.get("sent", 0)
+                out = {
+                    "version": VERSION,
+                    "contacts": {"total": sum(by_status.values()), "by_status": by_status,
+                                 "by_channel": by_channel,
+                                 "confirmed": by_status.get("confirmed", 0),
+                                 "pending": by_status.get("pending", 0),
+                                 "opted_out": by_status.get("opted_out", 0)},
+                    "campaigns": {"total": sum(camp_status.values()), "by_status": camp_status},
+                    "deliveries": {"total": total_del, "by_status": del_status,
+                                   "sent": sent_del, "failed": del_status.get("failed", 0)},
+                    "opt_ins": opt_ins, "opt_outs": opt_outs,
+                    "total_contacts": sum(by_status.values()),
+                    "total_campaigns": sum(camp_status.values()),
+                    "total_deliveries": total_del,
+                    "delivery_rate": round(100.0 * sent_del / total_del, 1) if total_del else 0.0,
+                    "inbox_messages": conn.execute("SELECT COUNT(*) c FROM messages").fetchone()["c"],
+                    "templates": conn.execute("SELECT COUNT(*) c FROM templates").fetchone()["c"],
+                    "users": conn.execute("SELECT COUNT(*) c FROM users").fetchone()["c"],
+                }
+                conn.close(); return self._send(200, out)
             conn.close(); return self._send(404, {"error": "not found"})
         return self._send(404, {"error": "not found"})
 
@@ -272,6 +440,44 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path)
         d = self._body()
         conn = db()
+
+        # ---------------------------------------------------------- auth
+        if u.path == "/api/auth/register":
+            email = str(d.get("email", "")).strip().lower()
+            password = str(d.get("password", ""))
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) or len(password) < 8:
+                conn.close()
+                return self._send(400, {"error": "valid email and a password of 8+ characters required"})
+            if conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone():
+                conn.close(); return self._send(409, {"error": "account already exists — log in instead"})
+            pw_hash, pw_salt = hash_password(password)
+            conn.execute("INSERT INTO users(email,pw_hash,pw_salt,created_at) VALUES(?,?,?,?)",
+                         (email, pw_hash, pw_salt, now()))
+            uid = conn.execute("SELECT last_insert_rowid() i").fetchone()["i"]
+            audit(conn, "user_registered", email)
+            token = self._new_session(conn, uid)
+            conn.commit(); conn.close()
+            return self._send(201, {"ok": True, "user": {"id": uid, "email": email}},
+                              headers=self._session_cookie(token))
+        if u.path == "/api/auth/login":
+            email = str(d.get("email", "")).strip().lower()
+            password = str(d.get("password", ""))
+            row = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+            if not row or not verify_password(password, row["pw_hash"], row["pw_salt"]):
+                conn.close(); return self._send(401, {"error": "invalid email or password"})
+            audit(conn, "user_login", email)
+            token = self._new_session(conn, row["id"])
+            conn.commit(); conn.close()
+            return self._send(200, {"ok": True, "user": {"id": row["id"], "email": email}},
+                              headers=self._session_cookie(token))
+        if u.path == "/api/auth/logout":
+            token = self._session_token()
+            if token:
+                conn.execute("DELETE FROM sessions WHERE token=?", (token,))
+                conn.commit()
+            conn.close()
+            return self._send(200, {"ok": True},
+                              headers={"Set-Cookie": "oim_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0"})
 
         if u.path == "/api/optin":
             ip = self.client_address[0]
@@ -310,25 +516,111 @@ class H(BaseHTTPRequestHandler):
 
         if u.path in ("/webhook/inbound", "/api/optout"):
             ident = str(d.get("identifier") or d.get("from") or d.get("From") or "").strip()
-            text = str(d.get("body") or d.get("Body") or d.get("text") or "").strip().upper()
+            raw_text = str(d.get("body") or d.get("Body") or d.get("text") or "").strip()
+            text = raw_text.upper()
+            channel = str(d.get("channel") or "sms").strip().lower()
             if u.path == "/api/optout":
                 text = "STOP"
             row = conn.execute("SELECT * FROM contacts WHERE identifier=?", (ident,)).fetchone()
-            if not row:
-                conn.close(); return self._send(404, {"error": "contact not found"})
             if text in STOP_WORDS:
+                if not row:
+                    conn.close(); return self._send(404, {"error": "contact not found"})
                 conn.execute("UPDATE contacts SET status='opted_out', opted_out_at=? WHERE id=?", (now(), row["id"]))
                 audit(conn, "opted_out", f"contact {row['id']} via '{text}'")
                 conn.commit(); conn.close()
                 return self._send(200, {"message": "Opted out. You will receive no more messages."})
             if text in HELP_WORDS:
                 conn.close(); return self._send(200, {"message": "Help: reply STOP to opt out."})
-            conn.close(); return self._send(200, {"message": "received"})
+            # Ordinary inbound message -> store it in the inbox (even when the
+            # sender is not a known contact yet; contact_id then stays NULL).
+            conn.execute(
+                "INSERT INTO messages(contact_id,identifier,channel,direction,body,status,created_at)"
+                " VALUES(?,?,?,'inbound',?,'received',?)",
+                (row["id"] if row else None, ident,
+                 (row["channel"] if row else channel), raw_text, now()))
+            mid = conn.execute("SELECT last_insert_rowid() i").fetchone()["i"]
+            audit(conn, "inbox_message", f"message {mid} from {ident}")
+            conn.commit(); conn.close()
+            return self._send(200, {"message": "received", "stored": True, "id": mid})
 
         # everything below is admin-only
         if u.path.startswith("/api/"):
             if not self._admin():
                 conn.close(); return
+            # ------------------------------------------------ BYOK AI settings
+            if u.path == "/api/settings/ai":
+                # Save the owner's own Meta AI key into the settings table.
+                # The value is NEVER logged or audited — only the fact of the
+                # update is. Empty api_key clears the stored value.
+                updates = {}
+                if "base_url" in d:
+                    bu = str(d.get("base_url") or "").strip()
+                    if bu and not bu.startswith("https://"):
+                        conn.close()
+                        return self._send(400, {"error": "base_url must start with https://"})
+                    updates["meta_ai_base_url"] = bu
+                if "api_key" in d:
+                    updates["meta_ai_api_key"] = str(d.get("api_key") or "").strip()
+                if "model" in d:
+                    updates["meta_ai_model"] = str(d.get("model") or "").strip()
+                for skey, val in updates.items():
+                    if val:
+                        conn.execute("INSERT INTO settings(key,value) VALUES(?,?)"
+                                     " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                                     (skey, val))
+                    else:
+                        conn.execute("DELETE FROM settings WHERE key=?", (skey,))
+                audit(conn, "ai_key_updated", "AI settings updated (values not logged)")
+                conn.commit()
+                status = ai_engine.config_status(conn)
+                conn.close(); return self._send(200, status)
+            if u.path == "/api/settings/ai/test":
+                res = ai_engine.test_connection(conn)
+                audit(conn, "ai_key_test", f"ok={res['ok']} engine={res['engine']}")
+                conn.commit(); conn.close(); return self._send(200, res)
+            # ------------------------------------------------ AI Studio
+            if u.path == "/api/ai/draft":
+                res = ai_engine.draft(str(d.get("goal", "")), str(d.get("channel", "whatsapp")),
+                                      str(d.get("tone", "friendly")), str(d.get("language", "en")),
+                                      conn=conn)
+                audit(conn, "ai_draft", f"engine={res['engine']} channel={d.get('channel','whatsapp')}")
+                conn.commit(); conn.close(); return self._send(200, res)
+            if u.path == "/api/ai/translate":
+                res = ai_engine.translate(str(d.get("text", "")), str(d.get("target", "en")),
+                                          conn=conn)
+                audit(conn, "ai_translate", f"engine={res['engine']} target={d.get('target','en')}")
+                conn.commit(); conn.close(); return self._send(200, res)
+            if u.path == "/api/ai/check":
+                res = ai_engine.check(str(d.get("text", "")), str(d.get("channel", "whatsapp")),
+                                      conn=conn)
+                res = dict(res); res["ok"] = True
+                audit(conn, "ai_check", f"engine={res['engine']} score={res['score']}")
+                conn.commit(); conn.close(); return self._send(200, res)
+            # ------------------------------------------------ Inbox reply
+            mr = re.match(r"^/api/inbox/(\d+)/reply$", u.path)
+            if mr:
+                mid = int(mr.group(1))
+                orig = conn.execute("SELECT * FROM messages WHERE id=?", (mid,)).fetchone()
+                if not orig:
+                    conn.close(); return self._send(404, {"error": "message not found"})
+                body = str(d.get("body", "")).strip()
+                if not body:
+                    conn.close(); return self._send(400, {"error": "reply body required"})
+                status = "sent (dry-run)" if DRY_RUN else "sent"
+                conn.execute(
+                    "INSERT INTO messages(contact_id,identifier,channel,direction,body,status,reply_to,created_at)"
+                    " VALUES(?,?,?,'outbound',?,?,?,?)",
+                    (orig["contact_id"], orig["identifier"], orig["channel"],
+                     body, status, mid, now()))
+                rid = conn.execute("SELECT last_insert_rowid() i").fetchone()["i"]
+                conn.execute(
+                    "INSERT INTO deliveries(campaign_id,contact_id,provider,status,detail,created_at)"
+                    " VALUES(NULL,?,?,?, ?,?)",
+                    (orig["contact_id"], "dry-run" if DRY_RUN else "inbox-reply",
+                     "sent" if DRY_RUN else "sent", f"inbox reply {rid} to message {mid}", now()))
+                audit(conn, "inbox_reply", f"reply {rid} to message {mid} ({status})")
+                conn.commit(); conn.close()
+                return self._send(201, {"ok": True, "id": rid, "status": status, "dry_run": DRY_RUN})
             if u.path == "/api/import/consented":
                 # CleanReach integration: import ONLY rows that carry a consent
                 # record (consent=true). Body: {"csv": "<csv text>", "channel": "sms"}
@@ -408,5 +700,7 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     init_db()
-    print(f"Opt-In Message on http://127.0.0.1:{PORT}  DRY_RUN={DRY_RUN}  DB={DB_PATH}")
+    _c = db(); _cfg = ai_engine.get_ai_config(_c); _c.close()
+    print(f"Opt-In Message v{VERSION} on http://127.0.0.1:{PORT}  DRY_RUN={DRY_RUN}  "
+          f"AI={'meta-ai' if _cfg['configured'] else 'local'} (source={_cfg['source']})  DB={DB_PATH}")
     ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()

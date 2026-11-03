@@ -1,0 +1,31 @@
+[package]
+name = "optin-message"
+version = "0.5.0"
+edition = "2021"
+license = "MIT"
+description = "Opt-In Message — consent-first messaging (Tauri shell over the Python engine)."
+
+[lib]
+# Mobile builds require a library target (staticlib/cdylib for the
+# Android/iOS loaders, rlib for the desktop binary shim).
+name = "optin_message_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "optin-message"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+
+# The app is its own workspace root: without this, cargo sees any parent
+# workspace and refuses to build.
+[workspace]
