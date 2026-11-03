@@ -1,7 +1,7 @@
 name: Release
 
 # Born-beta factory (same pattern as CleanReach / Network Diagnostics):
-# push a version tag (v0.6.0) and this builds installers for Windows,
+# push a version tag (v0.6.1) and this builds installers for Windows,
 # macOS and Linux, plus an experimental Android APK. The desktop app is a
 # Tauri 2 shell whose engine is BUILT IN: each desktop job first freezes
 # the Python engine (engine_main.py) with PyInstaller into a standalone
@@ -116,7 +116,7 @@ jobs:
           projectPath: app
           tagName: ${{ github.ref_name }}
           releaseName: "Opt-In Message ${{ github.ref_name }}"
-          releaseBody: "See the assets below to download and install this version. v0.6.0: the engine is BUILT IN — desktop installers carry a standalone engine binary, so no Python installation is needed (Windows also has a one-click auto-setup fallback). Real logo, new welcome screen with Restart engine / Open data folder / Copy dashboard URL. The plain source zip runs anywhere Python 3 runs: python3 app.py"
+          releaseBody: "See the assets below to download and install this version. v0.6.1: everything in v0.6.0 (the engine is BUILT IN — desktop installers carry a standalone engine binary, so no Python installation is needed; Windows also has a one-click auto-setup fallback; real logo; welcome screen with Restart engine / Open data folder / Copy dashboard URL) PLUS the Android APK (optin-message-android.apk, arm64) now builds and ships — it is signed with an ephemeral CI key, so Android will ask you to allow the install (sideload). The Android shell is a launcher/viewer: the Python engine cannot run on Android, so for the full app on mobile use the PWA from a running desktop/server instance. The plain source zip runs anywhere Python 3 runs: python3 app.py"
           releaseDraft: false
           prerelease: true
           args: ${{ matrix.args }}
@@ -168,7 +168,25 @@ jobs:
           # NOTE: the Android shell shows the launcher page — the Python
           # engine cannot spawn on Android, so mobile is a viewer/beta
           # lane exactly like the factory's other experimental APKs.
-          cargo tauri android build --apk --target aarch64
+          # The desktop sidecar (bundle.externalBin) is removed for this
+          # target by app/src-tauri/tauri.android.conf.json — without it,
+          # tauri-build aborts with: resource path
+          # `binaries/optin-engine-aarch64-linux-android` doesn't exist
+          # (the v0.5.1–v0.6.0 Android failures).
+          # Tee the full log so a failure leaves the real error behind.
+          set -o pipefail
+          cargo tauri android build --apk --target aarch64 2>&1 | tee /tmp/android-build.log
+      - name: Surface the Android build log on failure
+        if: failure()
+        run: |
+          echo "## Android build log (tail)" >> "$GITHUB_STEP_SUMMARY"
+          tail -n 150 /tmp/android-build.log >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: android-build-log
+          path: /tmp/android-build.log
+          if-no-files-found: ignore
       - name: Sign the APK (ephemeral CI debug key) + give it a real name
         run: |
           BT="$ANDROID_HOME/build-tools/34.0.0"
